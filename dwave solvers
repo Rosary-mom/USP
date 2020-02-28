@@ -1,0 +1,17 @@
+Solver: DW_2000Q_33
+   Parameters:
+      anneal_offsets: A list of anneal offsets for each working qubit (NaN if u...
+      anneal_schedule: A piecewise linear annealing schedule specified by a list...
+      annealing_time: A positive integer that sets the duration (in microsecond...
+
+      <Output snipped for brevity>
+
+   Properties:
+      anneal_offset_ranges: [[-0.18627387668142237, 0.09542224439071689], [-0.1836548...
+      anneal_offset_step: 0.00426679499507194
+      anneal_offset_step_phi0: 0.0002716837027763096
+      annealing_time_range: [1, 150000]
+      chip_id: W7-1_C16_4724854-02-G4_C5R9-device-cal-data-18-05-27-14:27
+      couplers: [[0, 4], [1, 4], [2, 4], [3, 4], [0, 5], [1, 5], [2, 5], ...
+
+      <Output snipped for brevity>
