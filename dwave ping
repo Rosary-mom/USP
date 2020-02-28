@@ -1,0 +1,15 @@
+$ dwave ping
+Using endpoint: https://cloud.dwavesys.com/sapi
+Using solver: My_DWAVE_2000Q
+
+Wall clock time:
+ * Solver definition fetch: 2007.239 ms
+ * Problem submit and results fetch: 1033.931 ms
+ * Total: 3041.171 ms
+
+QPU timing:
+ * total_real_time = 10493 us
+ * anneal_time_per_run = 20 us
+ * post_processing_overhead_time = 128 us
+ * qpu_anneal_time_per_sample = 20 us
+ # Snipped for brevity
