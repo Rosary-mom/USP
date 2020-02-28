@@ -1,0 +1,22 @@
+$ dwave
+
+Usage: dwave [OPTIONS] COMMAND [ARGS]...
+
+  D-Wave Cloud Client interactive configuration tool.
+
+Options:
+  --version    Show the version and exit.
+  --debug      Enable debug logging.
+  --trace      Enable trace-level debug logging.
+  --log LEVEL  Set custom numeric or symbolic log level.
+  --help       Show this message and exit.
+
+Commands:
+  config   Create, update or inspect cloud client configuration file(s).
+  install  Install optional non-open-source Ocean packages.
+  ping     Ping the QPU by submitting a single-qubit problem.
+  sample   Submit Ising-formulated problem and return samples.
+  setup    Setup optional Ocean packages and configuration file(s).
+  solvers  Get solver details.
+  upload   Multipart problem upload with cold restart support.
+  eval "$(_DWAVE_COMPLETE=source <path>/dwave)"
