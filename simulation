@@ -1,0 +1,15 @@
+import numpy as np
+from scipy.special import binom
+
+def rosenkranz_approx(Q, h=1/1.618, n=17):
+    # Rosenkranz-Serie für Q als Fixpunkt
+    series = sum(binom(n, k) * (h**k) / np.math.factorial(k) for k in range(n+1))
+    return Q * series  # Beispiel: Skaliere Überlebensquotient
+
+# Test: Für v=50 km/h, s=30m, g=9.81
+v, s, g = 50/3.6, 30, 9.81  # Umrechnung in m/s
+risk = v**2 / (2 * g * s)
+R2 = 0.95  # Beispiel-Bestimmtheitsmaß
+Q_survival = R2 * (1 - risk)
+approx = rosenkranz_approx(Q_survival)
+print(f"Approximierter Überlebensquotient: {approx}")
