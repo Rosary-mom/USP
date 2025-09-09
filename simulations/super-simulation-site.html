@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Super-Simulation: Fraktale Menschheitsmuster – Mit GAMBITS & Ranking</title>
+    <style>
+        body { margin: 0; font-family: Arial, sans-serif; background: #000011; color: white; padding: 20px; }
+        header { text-align: center; margin-bottom: 20px; }
+        .iframe-container { width: 100%; height: 60vh; border: 2px solid #4CAF50; border-radius: 10px; overflow: hidden; margin-bottom: 20px; }
+        iframe { width: 100%; height: 100%; border: none; }
+        .explanation { background: rgba(255,255,255,0.1); padding: 15px; border-radius: 10px; margin-bottom: 20px; }
+        .leaderboard { background: lightgreen; color: black; padding: 15px; border-radius: 10px; }
+        table { width: 100%; border-collapse: collapse; }
+        th, td { border: 1px solid #ccc; padding: 8px; text-align: left; }
+        th { background: #4CAF50; color: white; }
+        button { padding: 10px; background: #4CAF50; color: white; border: none; border-radius: 5px; cursor: pointer; margin: 5px; }
+        button:hover { background: #45a049; }
+        #saveScoreBtn { display: none; } /* Zeigt nach Simulation */
+    </style>
+</head>
+<body>
+    <header>
+        <h1>Super-Simulation: Fraktale Menschheitsmuster</h1>
+        <p>Spiele die Simulation im IFRAME unten. Erkunde GAMBITS-Module wie Pandemie oder Migration, um Scores zu sammeln. Basierend auf Projekt Chimera (Noodle).</p>
+    </header>
+
+    <!-- IFRAME-Snippet für die Super-Simulation (Canvas/Three.js) – kopiere das für Canva/Embeds -->
+    <div class="iframe-container">
+        <iframe src="simulations/super-simulation.html" title="Super-Simulation Canvas"></iframe>
+    </div>
+    <!-- Ende IFRAME-Snippet -->
+
+    <section class="explanation">
+        <h2>Score-Erklärung: Basierend auf Game GAMBITS</h2>
+        <p>Inspiriert von den GAMBITS in <em>Projekt Chimera: Das Goldene Zeitalter</em> (aus https://rosary-mom.github.io/Noodle/), wo GAMBITS strategische Aktionen sind, um Ressourcen wie Kapital (Mrd.), Datenspeicher (Ziop.), Legitimität (%) und Personal (Punkte) zu managen und das Universum zu erobern. Hier werden Scores als ressourcenbasierte GAMBITS modelliert – jeder Modul-Klick ist ein "Gambit" (z.B. "Pandemie-Gambit" simuliert Risiken wie in "Debt Crisis Gambit").</p>
+        <ul>
+            <li><strong>Basis-Score:</strong> Jeder Simulations-Schritt (z.B. via "Simulieren"-Button) generiert 10 * Q-Faktor * (Partikel-Anzahl / 1000) Punkte – ähnlich zu Ressourcen-Sammlung in Noodle (z.B. "Wissenschaftliche Studie veröffentlichen" für Forschung-Ressourcen).</li>
+            <li><strong>Q-Faktor-Bonus:</strong> Bei Q > 0.7: +20% Extra (repräsentiert "Legitimität"-Boost, wie Lobby-Kampagnen in GAMBITS, die % steigern). Hoher Q macht Fraktale komplexer, wie rekursive Planeten-Gambits im Solar System Explorer.</li>
+            <li><strong>Modul-spezifische GAMBITS:</strong>
+                <ul>
+                    <li><em>Pandemie:</em> Infektions-Spread (R0 = 1 + Q*2) als "Risiko-Gambit" – Scores steigen mit Infizierten (z.B. Fälle: numParticles * 0.1 * Q). Narrative mit RFK Jr. (2025): "Defunding mRNA erhöht Risiken um 30%" (aus MAHA-Report, ähnlich zu "Evident Facts Gambit").</li>
+                    <li><em>Migration/Traffic/Green Mob:</em> Wellen/Kreise/Spiralen als "Herden-Gambit" oder "Umwelt-Projekt" – boostet durch Zusammenspiel (z.B. +551 Punkte via Traffic-Dämpfung, wie "International Alliance Gambit").</li>
+                    <li><em>D-Wave:</em> +100 * Q Punkte als "Investment-Gambit" (z.B. "Crypto Voucher Investment" in Noodle) – simuliert Quanten-Annealing für bessere Ressourcen.</li>
+                </ul>
+            </li>
+            <li><strong>Level-System:</strong> Level = floor(Score / 100) + 1 – entspricht Runden in Noodle (z.B. "RUNDE: 1" für Fortschritt zu "Homo 1 Billiarden"). Ziel: Erreiche hohe Scores durch weises Ressourcen-Management, um "Goldenes Zeitalter" zu simulieren.</li>
+            <li><strong>Gesamt-Tipp:</strong> "Verwalte diese Ressourcen weise, um das Universum zu erobern" (Zitat aus Noodle). Kombiniere GAMBITS für Multiplikatoren – z.B. Pandemie + D-Wave = exponentieller Boost!</li>
+        </ul>
+    </section>
+
+    <section class="leaderboard">
+        <h2>Ranking-Liste: Top Besucher-Scores</h2>
+        <p>Aktueller Besucher-Count: <span id="visitorCount">0</span> (globaler Zähler seit Site-Start).</p>
+        <p>Dein aktueller Score (aus IFRAME): <span id="currentScore">0</span>. <button onclick="getScoreFromIframe()">Score laden</button> <button id="saveScoreBtn" onclick="saveScore()">Score speichern & Rängen</button></p>
+        <table id="rankingTable">
+            <thead><tr><th>Rang</th><th>Besucher (Fake-Name)</th><th>Score</th><th>Level</th><th>Letzter Besuch</th></tr></thead>
+            <tbody></tbody>
+        </table>
+    </section>
+
+    <script>
+        let currentScore = 0;
+        let visitorCount = localStorage.getItem('visitorCount') || 0;
+        document.getElementById('visitorCount').textContent = ++visitorCount;
+        localStorage.setItem('visitorCount', visitorCount);
+
+        // Leaderboard-Daten (localStorage: Array von {name: 'Anon', score: 0, level: 1, date: ''})
+        function loadLeaderboard() {
+            const rankings = JSON.parse(localStorage.getItem('leaderboard')) || [];
+            const tbody = document.querySelector('#rankingTable tbody');
+            tbody.innerHTML = '';
+            rankings.sort((a, b) => b.score - a.score).slice(0, 10).forEach((entry, index) => {
+                const row = tbody.insertRow();
+                row.innerHTML = `<td>${index + 1}</td><td>${entry.name}</td><td>${entry.score}</td><td>${entry.level}</td><td>${entry.date}</td>`;
+            });
+        }
+
+        function getScoreFromIframe() {
+            // Hole Score aus IFRAME (postMessage für Cross-Origin, aber da same-origin, direkt access – fallback zu prompt)
+            try {
+                const iframe = document.querySelector('iframe');
+                currentScore = iframe.contentWindow.score || prompt('Gib deinen Score ein (aus Feedback):');
+                document.getElementById('currentScore').textContent = currentScore;
+                document.getElementById('saveScoreBtn').style.display = 'inline';
+            } catch (e) {
+                currentScore = prompt('Score manuell eingeben:');
+                document.getElementById('currentScore').textContent = currentScore;
+                document.getElementById('saveScoreBtn').style.display = 'inline';
+            }
+        }
+
+        function saveScore() {
+            if (!currentScore) return;
+            const name = prompt('Dein Name (oder Anon):') || 'Anon';
+            const level = Math.floor(currentScore / 100) + 1;
+            const date = new Date().toLocaleDateString();
+            const rankings = JSON.parse(localStorage.getItem('leaderboard')) || [];
+            rankings.push({ name, score: parseInt(currentScore), level, date });
+            localStorage.setItem('leaderboard', JSON.stringify(rankings));
+            loadLeaderboard();
+            alert(`Score ${currentScore} gespeichert! Du bist im Ranking.`);
+            document.getElementById('saveScoreBtn').style.display = 'none';
+        }
+
+        // Initial laden
+        loadLeaderboard();
+
+        // Für besseres IFRAME-Score-Sharing: Füge in super-simulation.html hinzu (optional): window.parent.postMessage({score: score}, '*'); und hier: window.addEventListener('message', (e) => { if (e.data.score) currentScore = e.data.score; });
+    </script>
+</body>
+</html>
