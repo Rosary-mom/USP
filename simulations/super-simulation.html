@@ -2,33 +2,52 @@
 <html lang="de">
 <head>
     <meta charset="UTF-8">
-    <title>Super-Simulation: Fraktale Menschheitsmuster</title>
+    <title>Super-Simulation: Fraktale Menschheitsmuster,by ROSARY©®,2025 ff </title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <style>
         body { margin: 0; font-family: Arial; }
         canvas { display: block; }
-        .controls { position: absolute; top: 10px; left: 10px; background: white; padding: 10px; z-index: 1; border-radius: 5px; box-shadow: 0 2px 5px rgba(0,0,0,0.2); }
-        .tabs { margin: 10px; }
-        button { margin: 5px; padding: 8px 12px; background: #4CAF50; color: white; border: none; border-radius: 3px; cursor: pointer; }
+        .controls { position: absolute; top: 10px; left: 10px; background: white; padding: 10px; z-index: 1; border-radius: 5px; box-shadow: 0 2px 5px rgba(0,0,0,0.2); display: flex; flex-direction: column; }
+        .tabs { display: flex; flex-wrap: wrap; margin-bottom: 10px; }
+        button { margin: 2px; padding: 8px 12px; background: #4CAF50; color: white; border: none; border-radius: 3px; cursor: pointer; }
         button:hover { background: #45a049; }
+        .inputs { display: flex; flex-direction: column; margin-bottom: 5px; }
+        input, select { margin: 2px; padding: 5px; }
         #feedback { position: absolute; bottom: 10px; left: 10px; background: white; padding: 10px; border-radius: 5px; box-shadow: 0 2px 5px rgba(0,0,0,0.2); max-width: 300px; }
+        #narrative { position: absolute; bottom: 10px; right: 10px; background: #ffe6e6; padding: 10px; border-radius: 5px; box-shadow: 0 2px 5px rgba(0,0,0,0.2); max-width: 300px; font-style: italic; color: #d00; }
         #score { position: absolute; top: 10px; right: 10px; background: lightgreen; padding: 10px; border-radius: 5px; box-shadow: 0 2px 5px rgba(0,0,0,0.2); font-weight: bold; }
         .slider { width: 100px; }
+        #exportBtn { background: #2196F3; }
+        #simulateBtn { background: #FF9800; width: 100%; }
     </style>
 </head>
 <body>
     <div class="controls">
         <div class="tabs">
+            <button onclick="switchModule('pandemie')">Pandemie (Ausbruch)</button>
             <button onclick="switchModule('migration')">Migration (Herden)</button>
             <button onclick="switchModule('traffic')">Traffic (Stadt)</button>
             <button onclick="switchModule('greenmob')">Green Mob (Umwelt)</button>
             <button onclick="optimizeWithDWave()">D-Wave Optimieren</button>
+            <button id="exportBtn" onclick="exportScene()">Szene Exportieren (PNG)</button>
         </div>
-        <label>Q-Faktor: <input type="range" id="qSlider" min="0" max="1" step="0.1" value="0.5" class="slider" onchange="updateQFactor(this.value)"></label>
+        <div class="inputs">
+            <label>Modul: <select id="modulSelect" onchange="switchModule(this.value)">
+                <option value="none">Wähle Modul</option>
+                <option value="pandemie">Pandemie</option>
+                <option value="migration">Migration</option>
+                <option value="traffic">Traffic</option>
+                <option value="greenmob">Green Mob</option>
+            </select></label>
+            <label>Q-Faktor: <input type="range" id="qSlider" min="0" max="1" step="0.1" value="0.5" class="slider" onchange="updateQFactor(this.value)"></label>
+            <label>Größe (Herde/Autos/Infizierte): <input type="number" id="sizeInput" value="5000" min="100" max="10000" onchange="updateSize(this.value)"></label>
+            <button id="simulateBtn" onclick="simulateStep()">Simulieren</button>
+        </div>
         <p id="currentModule">Modul: Willkommen</p>
     </div>
     <canvas id="canvas"></canvas>
     <div id="feedback">Feedback: Starte eine Simulation!</div>
+    <div id="narrative">Narrative: Willkommen zu fraktalen Mustern.</div>
     <div id="score">Score: 0 | Level: 1</div>
 
     <script>
@@ -36,7 +55,11 @@
         let particles = [];
         let score = 0;
         let qFactor = 0.5;
+        let numParticles = 5000;
         let animationId;
+        let audioContext;
+        let infected = []; // Für Pandemie: Array von infizierten Indizes
+        let narrativeInterval;
 
         // Initialisiere Three.js Szene
         function init() {
@@ -47,88 +70,178 @@
             renderer.setSize(window.innerWidth, window.innerHeight);
             camera.position.z = 50;
 
-            // Basis-Partikel für Simulationen erstellen (1000 Punkte)
+            updateParticles();
+
+            audioContext = new (window.AudioContext || window.webkitAudioContext)();
+            animate();
+        }
+
+        function updateParticles() {
+            // Entferne alte
+            particles.forEach(p => scene.remove(p));
+            particles = [];
+
             const geometry = new THREE.BufferGeometry();
-            const positions = new Float32Array(1000 * 3);
-            for (let i = 0; i < 1000; i++) {
+            const positions = new Float32Array(numParticles * 3);
+            for (let i = 0; i < numParticles; i++) {
                 positions[i * 3] = (Math.random() - 0.5) * 100;
                 positions[i * 3 + 1] = (Math.random() - 0.5) * 100;
                 positions[i * 3 + 2] = (Math.random() - 0.5) * 100;
             }
             geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
-            const material = new THREE.PointsMaterial({ color: 0x00ff00, size: 0.5 });
+            const material = new THREE.PointsMaterial({ color: 0x00ff00, size: 1 / Math.sqrt(numParticles / 5000) }); // Skaliere Größe
             const pointCloud = new THREE.Points(geometry, material);
             scene.add(pointCloud);
-            particles.push(pointCloud); // Für Updates
+            particles.push(pointCloud);
+            infected = []; // Reset für Pandemie
+        }
 
-            animate();
+        function playSound(frequency, duration = 0.1) {
+            const oscillator = audioContext.createOscillator();
+            const gainNode = audioContext.createGain();
+            oscillator.connect(gainNode);
+            gainNode.connect(audioContext.destination);
+            oscillator.frequency.value = frequency;
+            gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+            gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + duration);
+            oscillator.start(audioContext.currentTime);
+            oscillator.stop(audioContext.currentTime + duration);
         }
 
         function animate() {
             animationId = requestAnimationFrame(animate);
-            // Rotation für dynamischen Effekt
             scene.rotation.y += 0.001 * qFactor;
             renderer.render(scene, camera);
         }
 
         function switchModule(module) {
+            if (module === 'none') return;
             currentModule = module;
             document.getElementById('currentModule').textContent = 'Modul: ' + module;
-            document.getElementById('feedback').textContent = 'Feedback: ' + module + ' aktiviert! Q-Faktor beeinflusst Komplexität.';
-            
-            // Modul-spezifische Logik (einfache Fraktal-ähnliche Bewegungen)
+            document.getElementById('modulSelect').value = module;
+            document.getElementById('feedback').textContent = 'Feedback: ' + module + ' aktiviert! Klicke Simulieren für Schritt.';
+            playSound(440 + Math.random() * 200);
+            updateParticles(); // Neu laden für Größe
+            startNarrativeRotation();
+        }
+
+        function simulateStep() {
+            if (currentModule === 'none') {
+                document.getElementById('feedback').textContent = 'Feedback: Wähle erst ein Modul!';
+                return;
+            }
+            playSound(660);
             const positions = particles[0].geometry.attributes.position.array;
-            for (let i = 0; i < positions.length; i += 3) {
-                switch (module) {
+            const num = positions.length / 3;
+            let boost = 10 * qFactor * (num / 1000);
+
+            // Fraktal-Basis
+            for (let i = 0; i < num; i++) {
+                const idx = i * 3;
+                let x = positions[idx], y = positions[idx + 1], z = positions[idx + 2];
+                for (let iter = 0; iter < 3; iter++) {
+                    const newX = x * x - y * y + Math.cos(i * qFactor) * 0.1;
+                    const newY = 2 * x * y + Math.sin(i * qFactor) * 0.1;
+                    x = newX; y = newY;
+                }
+                positions[idx] += x * 0.01; positions[idx + 1] += y * 0.01;
+
+                switch (currentModule) {
+                    case 'pandemie':
+                        // Pandemie-Spread: Infiziere basierend auf Q (R0 = 1 + Q*2)
+                        if (Math.random() < qFactor * 0.01 && !infected.includes(i)) {
+                            infected.push(i);
+                            particles[0].geometry.attributes.position.array[idx] = x; // Fraktal-Cluster
+                            particles[0].material.color.setHex(0xff0000); // Rot
+                        }
+                        // Spread zu Nachbarn (einfach: random nearby)
+                        if (infected.includes(i) && Math.random() < qFactor * 0.005) {
+                            const neighbor = Math.floor(Math.random() * num);
+                            if (!infected.includes(neighbor)) infected.push(neighbor);
+                        }
+                        break;
                     case 'migration':
-                        // Herden-Migration: Wellenbewegung
-                        positions[i + 1] += Math.sin(Date.now() * 0.001 + i) * 0.1 * qFactor;
-                        positions[i] += Math.cos(Date.now() * 0.001 + i) * 0.05 * qFactor;
+                        positions[idx + 1] += Math.sin(Date.now() * 0.001 + x) * 0.2 * qFactor;
+                        positions[idx] += Math.cos(Date.now() * 0.001 + y) * 0.1 * qFactor;
+                        particles[0].material.color.setHex(0x0000ff);
                         break;
                     case 'traffic':
-                        // Stadt-Traffic: Zirkuläre Pfade
-                        const angle = (Date.now() * 0.002 + i) * qFactor;
-                        positions[i] = Math.cos(angle) * 20;
-                        positions[i + 1] = Math.sin(angle) * 20;
+                        const angle = (Date.now() * 0.002 + z) * qFactor;
+                        positions[idx] = Math.cos(angle) * 30 + x * 0.5;
+                        positions[idx + 1] = Math.sin(angle) * 30 + y * 0.5;
+                        particles[0].material.color.setHex(0xff0000);
                         break;
                     case 'greenmob':
-                        // Umwelt-Mob: Fraktale Wachstum (grün, spiralförmig)
+                        const spiral = Math.sqrt(i) * qFactor + Date.now() * 0.0005;
+                        positions[idx] = Math.cos(spiral) * spiral + x;
+                        positions[idx + 1] = Math.sin(spiral) * spiral + y;
+                        positions[idx + 2] += 0.02 * qFactor;
                         particles[0].material.color.setHex(0x00ff00);
-                        const spiral = Math.sqrt(i) * qFactor;
-                        positions[i] = Math.cos(spiral) * spiral;
-                        positions[i + 1] = Math.sin(spiral) * spiral;
-                        positions[i + 2] += 0.01 * qFactor; // Wachstum in Z
                         break;
                 }
             }
             particles[0].geometry.attributes.position.needsUpdate = true;
 
-            // Score erhöhen für Interaktion (gamer-freundlich)
-            score += 10 * qFactor;
+            // Score
+            if (qFactor > 0.7) boost += 20;
+            score += boost;
             updateScore();
+
+            // Modul-spezifisches Feedback
+            let r0 = 1 + qFactor * 2;
+            let cases = Math.floor(numParticles * 0.1 * qFactor);
+            switch (currentModule) {
+                case 'pandemie':
+                    document.getElementById('feedback').textContent = `Feedback: Pandemie-Sim-Step! Infizierte: ${infected.length}, R0: ${r0.toFixed(1)}`;
+                    break;
+                // Andere Fälle ähnlich...
+                default:
+                    document.getElementById('feedback').textContent = `Feedback: ${currentModule} simuliert! Boost: ${boost.toFixed(0)}`;
+            }
+        }
+
+        function startNarrativeRotation() {
+            if (narrativeInterval) clearInterval(narrativeInterval);
+            let narratives = [
+                'Willkommen zu fraktalen Mustern der Menschheit.'
+            ];
+            if (currentModule === 'pandemie') {
+                narratives = [
+                    `Pandemie-Ausbruch: Infektionsrate ${ (1 + qFactor * 2).toFixed(1) } (R0), Fälle: ${Math.floor(numParticles * 0.1 * qFactor)} – US Sec Health RFK Jr. (2025): Defunding mRNA-Forschung erhöht Risiken um 30% (PBS/HealthPolicy).`,
+                    `Neue Narrative: RFK Jr.s MAHA-Report warnt vor Vaccine-Hesitancy – Spread +15% durch Politik (BBC, Aug 2025).`,
+                    `Olive Branch to WHO: Globale Prep senkt Ausbreitung, aber Caveats zu Impfungen (HealthPolicy, May 2025). Infizierte: ${infected.length}.`
+                ];
+            }
+            let idx = 0;
+            narrativeInterval = setInterval(() => {
+                document.getElementById('narrative').textContent = 'Narrative: ' + narratives[idx % narratives.length];
+                idx++;
+            }, 5000); // Wechsle alle 5s
         }
 
         function optimizeWithDWave() {
-            document.getElementById('feedback').textContent = 'Feedback: D-Wave Optimierung läuft... (Simuliert Quanten-Annealing für bessere Fraktale)';
-            // Simuliere Optimierung: Zufällige Verbesserung
-            qFactor = Math.random();
+            document.getElementById('feedback').textContent = 'Feedback: D-Wave Optimierung läuft... (Simuliertes Quanten-Annealing)';
+            playSound(880, 0.2);
+            qFactor = Math.min(1, qFactor + Math.random() * 0.3 - 0.1);
             document.getElementById('qSlider').value = qFactor;
             updateQFactor(qFactor);
-            score += 50;
+            score += 100 * qFactor;
             updateScore();
-            // Optimiere Partikel-Positionen (einfache "Quanten"-Störung)
             const positions = particles[0].geometry.attributes.position.array;
             for (let i = 0; i < positions.length; i += 3) {
-                positions[i] += (Math.random() - 0.5) * 0.1;
-                positions[i + 1] += (Math.random() - 0.5) * 0.1;
-                positions[i + 2] += (Math.random() - 0.5) * 0.1;
+                positions[i] += (Math.random() - 0.5) * 0.2 * qFactor;
             }
             particles[0].geometry.attributes.position.needsUpdate = true;
+            particles[0].material.color.setHex(0x8a2be2);
         }
 
         function updateQFactor(value) {
             qFactor = parseFloat(value);
-            document.getElementById('feedback').textContent += ' | Q-Faktor: ' + qFactor;
+        }
+
+        function updateSize(value) {
+            numParticles = parseInt(value);
+            updateParticles();
         }
 
         function updateScore() {
@@ -136,14 +249,22 @@
             document.getElementById('score').textContent = 'Score: ' + Math.floor(score) + ' | Level: ' + level;
         }
 
-        // Resize Handler
+        function exportScene() {
+            const dataURL = renderer.domElement.toDataURL('image/png');
+            const link = document.createElement('a');
+            link.download = 'fraktal-simulation.png';
+            link.href = dataURL;
+            link.click();
+            document.getElementById('feedback').textContent = 'Feedback: Szene als PNG exportiert!';
+            playSound(660, 0.15);
+        }
+
         window.addEventListener('resize', () => {
             camera.aspect = window.innerWidth / window.innerHeight;
             camera.updateProjectionMatrix();
             renderer.setSize(window.innerWidth, window.innerHeight);
         });
 
-        // Starte die Simulation
         init();
     </script>
 </body>
