@@ -2,111 +2,293 @@
 <html lang="de">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Super-Simulation: Fraktale Menschheitsmuster – Mit GAMBITS & Ranking</title>
+    <title>Super-Simulation: Fraktale Menschheitsmuster</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <style>
-        body { margin: 0; font-family: Arial, sans-serif; background: #000011; color: white; padding: 20px; }
-        header { text-align: center; margin-bottom: 20px; }
-        .iframe-container { width: 100%; height: 60vh; border: 2px solid #4CAF50; border-radius: 10px; overflow: hidden; margin-bottom: 20px; }
-        iframe { width: 100%; height: 100%; border: none; }
-        .explanation { background: rgba(255,255,255,0.1); padding: 15px; border-radius: 10px; margin-bottom: 20px; }
-        .leaderboard { background: lightgreen; color: black; padding: 15px; border-radius: 10px; }
-        table { width: 100%; border-collapse: collapse; }
-        th, td { border: 1px solid #ccc; padding: 8px; text-align: left; }
-        th { background: #4CAF50; color: white; }
-        button { padding: 10px; background: #4CAF50; color: white; border: none; border-radius: 5px; cursor: pointer; margin: 5px; }
+        body { margin: 0; font-family: Arial; }
+        canvas { display: block; }
+        .controls { position: absolute; top: 10px; left: 10px; background: white; padding: 10px; z-index: 1; border-radius: 5px; box-shadow: 0 2px 5px rgba(0,0,0,0.2); display: flex; flex-direction: column; }
+        .tabs { display: flex; flex-wrap: wrap; margin-bottom: 10px; }
+        button { margin: 2px; padding: 8px 12px; background: #4CAF50; color: white; border: none; border-radius: 3px; cursor: pointer; }
         button:hover { background: #45a049; }
-        #saveScoreBtn { display: none; } /* Zeigt nach Simulation */
+        .inputs { display: flex; flex-direction: column; margin-bottom: 5px; }
+        input, select { margin: 2px; padding: 5px; }
+        #feedback { position: absolute; bottom: 10px; left: 10px; background: white; padding: 10px; border-radius: 5px; box-shadow: 0 2px 5px rgba(0,0,0,0.2); max-width: 300px; }
+        #narrative { position: absolute; bottom: 10px; right: 10px; background: #ffe6e6; padding: 10px; border-radius: 5px; box-shadow: 0 2px 5px rgba(0,0,0,0.2); max-width: 300px; font-style: italic; color: #d00; }
+        #score { position: absolute; top: 10px; right: 10px; background: lightgreen; padding: 10px; border-radius: 5px; box-shadow: 0 2px 5px rgba(0,0,0,0.2); font-weight: bold; }
+        .slider { width: 100px; }
+        #exportBtn { background: #2196F3; }
+        #simulateBtn { background: #FF9800; width: 100%; }
     </style>
 </head>
 <body>
-    <header>
-        <h1>Super-Simulation: Fraktale Menschheitsmuster</h1>
-        <p>Spiele die Simulation im IFRAME unten. Erkunde GAMBITS-Module wie Pandemie oder Migration, um Scores zu sammeln. Basierend auf Projekt Chimera (Noodle).</p>
-    </header>
-
-    <!-- IFRAME-Snippet für die Super-Simulation (Canvas/Three.js) – kopiere das für Canva/Embeds -->
-    <div class="iframe-container">
-        <iframe src="simulations/super-simulation.html" title="Super-Simulation Canvas"></iframe>
+    <div class="controls">
+        <div class="tabs">
+            <button onclick="switchModule('spacechurch')">Space Church (Raumfahrt-Christen)</button>
+            <button onclick="switchModule('pandemie')">Pandemie (Ausbruch)</button>
+            <button onclick="switchModule('migration')">Migration (Herden)</button>
+            <button onclick="switchModule('traffic')">Traffic (Stadt)</button>
+            <button onclick="switchModule('greenmob')">Green Mob (Umwelt)</button>
+            <button onclick="optimizeWithDWave()">D-Wave Optimieren</button>
+            <button id="exportBtn" onclick="exportScene()">Szene Exportieren (PNG)</button>
+        </div>
+        <div class="inputs">
+            <label>Modul: <select id="modulSelect" onchange="switchModule(this.value)">
+                <option value="none">Wähle Modul</option>
+                <option value="spacechurch">Space Church</option>
+                <option value="pandemie">Pandemie</option>
+                <option value="migration">Migration</option>
+                <option value="traffic">Traffic</option>
+                <option value="greenmob">Green Mob</option>
+            </select></label>
+            <label>Q-Faktor: <input type="range" id="qSlider" min="0" max="1" step="0.1" value="0.5" class="slider" onchange="updateQFactor(this.value)"></label>
+            <label>Größe (Seelen/Herde/Infizierte): <input type="number" id="sizeInput" value="5000" min="100" max="10000" onchange="updateSize(this.value)"></label>
+            <button id="simulateBtn" onclick="simulateStep()">Simulieren</button>
+        </div>
+        <p id="currentModule">Modul: Willkommen</p>
     </div>
-    <!-- Ende IFRAME-Snippet -->
-
-    <section class="explanation">
-        <h2>Score-Erklärung: Basierend auf Game GAMBITS</h2>
-        <p>Inspiriert von den GAMBITS in <em>Projekt Chimera: Das Goldene Zeitalter</em> (aus https://rosary-mom.github.io/Noodle/), wo GAMBITS strategische Aktionen sind, um Ressourcen wie Kapital (Mrd.), Datenspeicher (Ziop.), Legitimität (%) und Personal (Punkte) zu managen und das Universum zu erobern. Hier werden Scores als ressourcenbasierte GAMBITS modelliert – jeder Modul-Klick ist ein "Gambit" (z.B. "Pandemie-Gambit" simuliert Risiken wie in "Debt Crisis Gambit").</p>
-        <ul>
-            <li><strong>Basis-Score:</strong> Jeder Simulations-Schritt (z.B. via "Simulieren"-Button) generiert 10 * Q-Faktor * (Partikel-Anzahl / 1000) Punkte – ähnlich zu Ressourcen-Sammlung in Noodle (z.B. "Wissenschaftliche Studie veröffentlichen" für Forschung-Ressourcen).</li>
-            <li><strong>Q-Faktor-Bonus:</strong> Bei Q > 0.7: +20% Extra (repräsentiert "Legitimität"-Boost, wie Lobby-Kampagnen in GAMBITS, die % steigern). Hoher Q macht Fraktale komplexer, wie rekursive Planeten-Gambits im Solar System Explorer.</li>
-            <li><strong>Modul-spezifische GAMBITS:</strong>
-                <ul>
-                    <li><em>Pandemie:</em> Infektions-Spread (R0 = 1 + Q*2) als "Risiko-Gambit" – Scores steigen mit Infizierten (z.B. Fälle: numParticles * 0.1 * Q). Narrative mit RFK Jr. (2025): "Defunding mRNA erhöht Risiken um 30%" (aus MAHA-Report, ähnlich zu "Evident Facts Gambit").</li>
-                    <li><em>Migration/Traffic/Green Mob:</em> Wellen/Kreise/Spiralen als "Herden-Gambit" oder "Umwelt-Projekt" – boostet durch Zusammenspiel (z.B. +551 Punkte via Traffic-Dämpfung, wie "International Alliance Gambit").</li>
-                    <li><em>D-Wave:</em> +100 * Q Punkte als "Investment-Gambit" (z.B. "Crypto Voucher Investment" in Noodle) – simuliert Quanten-Annealing für bessere Ressourcen.</li>
-                </ul>
-            </li>
-            <li><strong>Level-System:</strong> Level = floor(Score / 100) + 1 – entspricht Runden in Noodle (z.B. "RUNDE: 1" für Fortschritt zu "Homo 1 Billiarden"). Ziel: Erreiche hohe Scores durch weises Ressourcen-Management, um "Goldenes Zeitalter" zu simulieren.</li>
-            <li><strong>Gesamt-Tipp:</strong> "Verwalte diese Ressourcen weise, um das Universum zu erobern" (Zitat aus Noodle). Kombiniere GAMBITS für Multiplikatoren – z.B. Pandemie + D-Wave = exponentieller Boost!</li>
-        </ul>
-    </section>
-
-    <section class="leaderboard">
-        <h2>Ranking-Liste: Top Besucher-Scores</h2>
-        <p>Aktueller Besucher-Count: <span id="visitorCount">0</span> (globaler Zähler seit Site-Start).</p>
-        <p>Dein aktueller Score (aus IFRAME): <span id="currentScore">0</span>. <button onclick="getScoreFromIframe()">Score laden</button> <button id="saveScoreBtn" onclick="saveScore()">Score speichern & Rängen</button></p>
-        <table id="rankingTable">
-            <thead><tr><th>Rang</th><th>Besucher (Fake-Name)</th><th>Score</th><th>Level</th><th>Letzter Besuch</th></tr></thead>
-            <tbody></tbody>
-        </table>
-    </section>
+    <canvas id="canvas"></canvas>
+    <div id="feedback">Feedback: Starte eine Simulation!</div>
+    <div id="narrative">Narrative: Willkommen zu fraktalen Mustern.</div>
+    <div id="score">Score: 0 | Level: 1</div>
 
     <script>
-        let currentScore = 0;
-        let visitorCount = localStorage.getItem('visitorCount') || 0;
-        document.getElementById('visitorCount').textContent = ++visitorCount;
-        localStorage.setItem('visitorCount', visitorCount);
+        let scene, camera, renderer, currentModule = 'none';
+        let particles = [];
+        let score = 0;
+        let qFactor = 0.5;
+        let numParticles = 5000;
+        let animationId;
+        let audioContext;
+        let infected = []; // Für Pandemie
+        let constructiveActs = []; // Für Space Church: Grüne Taten
+        let narrativeInterval;
 
-        // Leaderboard-Daten (localStorage: Array von {name: 'Anon', score: 0, level: 1, date: ''})
-        function loadLeaderboard() {
-            const rankings = JSON.parse(localStorage.getItem('leaderboard')) || [];
-            const tbody = document.querySelector('#rankingTable tbody');
-            tbody.innerHTML = '';
-            rankings.sort((a, b) => b.score - a.score).slice(0, 10).forEach((entry, index) => {
-                const row = tbody.insertRow();
-                row.innerHTML = `<td>${index + 1}</td><td>${entry.name}</td><td>${entry.score}</td><td>${entry.level}</td><td>${entry.date}</td>`;
-            });
+        // Initialisiere Three.js Szene
+        function init() {
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0x000011);
+            camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+            renderer = new THREE.WebGLRenderer({ canvas: document.getElementById('canvas'), antialias: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            camera.position.z = 50;
+
+            updateParticles();
+
+            audioContext = new (window.AudioContext || window.webkitAudioContext)();
+            animate();
         }
 
-        function getScoreFromIframe() {
-            // Hole Score aus IFRAME (postMessage für Cross-Origin, aber da same-origin, direkt access – fallback zu prompt)
-            try {
-                const iframe = document.querySelector('iframe');
-                currentScore = iframe.contentWindow.score || prompt('Gib deinen Score ein (aus Feedback):');
-                document.getElementById('currentScore').textContent = currentScore;
-                document.getElementById('saveScoreBtn').style.display = 'inline';
-            } catch (e) {
-                currentScore = prompt('Score manuell eingeben:');
-                document.getElementById('currentScore').textContent = currentScore;
-                document.getElementById('saveScoreBtn').style.display = 'inline';
+        function updateParticles() {
+            particles.forEach(p => scene.remove(p));
+            particles = [];
+
+            const geometry = new THREE.BufferGeometry();
+            const positions = new Float32Array(numParticles * 3);
+            for (let i = 0; i < numParticles; i++) {
+                positions[i * 3] = (Math.random() - 0.5) * 100;
+                positions[i * 3 + 1] = (Math.random() - 0.5) * 100;
+                positions[i * 3 + 2] = (Math.random() - 0.5) * 100;
+            }
+            geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+            const material = new THREE.PointsMaterial({ color: 0x00ff00, size: 1 / Math.sqrt(numParticles / 5000) });
+            const pointCloud = new THREE.Points(geometry, material);
+            scene.add(pointCloud);
+            particles.push(pointCloud);
+            infected = [];
+            constructiveActs = [];
+        }
+
+        function playSound(frequency, duration = 0.1) {
+            const oscillator = audioContext.createOscillator();
+            const gainNode = audioContext.createGain();
+            oscillator.connect(gainNode);
+            gainNode.connect(audioContext.destination);
+            oscillator.frequency.value = frequency;
+            gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+            gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + duration);
+            oscillator.start(audioContext.currentTime);
+            oscillator.stop(audioContext.currentTime + duration);
+        }
+
+        function animate() {
+            animationId = requestAnimationFrame(animate);
+            scene.rotation.y += 0.001 * qFactor;
+            renderer.render(scene, camera);
+        }
+
+        function switchModule(module) {
+            if (module === 'none') return;
+            currentModule = module;
+            document.getElementById('currentModule').textContent = 'Modul: ' + module;
+            document.getElementById('modulSelect').value = module;
+            document.getElementById('feedback').textContent = 'Feedback: ' + module + ' aktiviert! Klicke Simulieren für Schritt.';
+            playSound(440 + Math.random() * 200);
+            updateParticles();
+            startNarrativeRotation();
+        }
+
+        function simulateStep() {
+            if (currentModule === 'none') {
+                document.getElementById('feedback').textContent = 'Feedback: Wähle erst ein Modul!';
+                return;
+            }
+            playSound(660);
+            const positions = particles[0].geometry.attributes.position.array;
+            const num = positions.length / 3;
+            let boost = 10 * qFactor * (num / 1000);
+
+            // Fraktal-Basis
+            for (let i = 0; i < num; i++) {
+                const idx = i * 3;
+                let x = positions[idx], y = positions[idx + 1], z = positions[idx + 2];
+                for (let iter = 0; iter < 3; iter++) {
+                    const newX = x * x - y * y + Math.cos(i * qFactor) * 0.1;
+                    const newY = 2 * x * y + Math.sin(i * qFactor) * 0.1;
+                    x = newX; y = newY;
+                }
+                positions[idx] += x * 0.01; positions[idx + 1] += y * 0.01;
+
+                switch (currentModule) {
+                    case 'spacechurch':
+                        // Space Church: Konstruktive Taten (grün) vs. destruktive (rot); Archen-Spiralen
+                        if (Math.random() < qFactor * 0.02 && !constructiveActs.includes(i)) {
+                            constructiveActs.push(i);
+                            particles[0].material.color.setHex(0x00ff00); // Grün für Salvation
+                            const spiral = Math.sqrt(i) * qFactor + Date.now() * 0.0005; // Arche-Spirale
+                            positions[idx] = Math.cos(spiral) * spiral + x * 2; // Kolonie-Wachstum
+                            positions[idx + 1] = Math.sin(spiral) * spiral + y * 2;
+                            positions[idx + 2] += 0.03 * qFactor; // Aufstieg ins All
+                            boost += 15; // Gambit-Boost
+                        } else if (Math.random() < (1 - qFactor) * 0.01) {
+                            particles[0].material.color.setHex(0xff0000); // Rot für Verdammnis
+                            boost -= 5; // Malus
+                        }
+                        break;
+                    case 'pandemie':
+                        // ... (bestehende Logik)
+                        if (Math.random() < qFactor * 0.01 && !infected.includes(i)) {
+                            infected.push(i);
+                            particles[0].material.color.setHex(0xff0000);
+                        }
+                        if (infected.includes(i) && Math.random() < qFactor * 0.005) {
+                            const neighbor = Math.floor(Math.random() * num);
+                            if (!infected.includes(neighbor)) infected.push(neighbor);
+                        }
+                        break;
+                    // Andere Module (Migration, Traffic, Green Mob) wie zuvor
+                    case 'migration':
+                        positions[idx + 1] += Math.sin(Date.now() * 0.001 + x) * 0.2 * qFactor;
+                        positions[idx] += Math.cos(Date.now() * 0.001 + y) * 0.1 * qFactor;
+                        particles[0].material.color.setHex(0x0000ff);
+                        break;
+                    case 'traffic':
+                        const angle = (Date.now() * 0.002 + z) * qFactor;
+                        positions[idx] = Math.cos(angle) * 30 + x * 0.5;
+                        positions[idx + 1] = Math.sin(angle) * 30 + y * 0.5;
+                        particles[0].material.color.setHex(0xff0000);
+                        break;
+                    case 'greenmob':
+                        const spiral = Math.sqrt(i) * qFactor + Date.now() * 0.0005;
+                        positions[idx] = Math.cos(spiral) * spiral + x;
+                        positions[idx + 1] = Math.sin(spiral) * spiral + y;
+                        positions[idx + 2] += 0.02 * qFactor;
+                        particles[0].material.color.setHex(0x00ff00);
+                        break;
+                }
+            }
+            particles[0].geometry.attributes.position.needsUpdate = true;
+
+            if (qFactor > 0.7) boost += 20;
+            score += boost;
+            updateScore();
+
+            let r0 = 1 + qFactor * 2;
+            let cases = Math.floor(numParticles * 0.1 * qFactor);
+            switch (currentModule) {
+                case 'spacechurch':
+                    document.getElementById('feedback').textContent = `Feedback: Space Church Sim-Step! Konstruktive Taten: ${constructiveActs.length}, Salvation-Netto: ${(qFactor * 100).toFixed(0)}%`;
+                    break;
+                case 'pandemie':
+                    document.getElementById('feedback').textContent = `Feedback: Pandemie-Sim-Step! Infizierte: ${infected.length}, R0: ${r0.toFixed(1)}`;
+                    break;
+                default:
+                    document.getElementById('feedback').textContent = `Feedback: ${currentModule} simuliert! Boost: ${boost.toFixed(0)}`;
             }
         }
 
-        function saveScore() {
-            if (!currentScore) return;
-            const name = prompt('Dein Name (oder Anon):') || 'Anon';
-            const level = Math.floor(currentScore / 100) + 1;
-            const date = new Date().toLocaleDateString();
-            const rankings = JSON.parse(localStorage.getItem('leaderboard')) || [];
-            rankings.push({ name, score: parseInt(currentScore), level, date });
-            localStorage.setItem('leaderboard', JSON.stringify(rankings));
-            loadLeaderboard();
-            alert(`Score ${currentScore} gespeichert! Du bist im Ranking.`);
-            document.getElementById('saveScoreBtn').style.display = 'none';
+        function startNarrativeRotation() {
+            if (narrativeInterval) clearInterval(narrativeInterval);
+            let narratives = ['Willkommen zu fraktalen Mustern der Menschheit.'];
+            if (currentModule === 'spacechurch') {
+                narratives = [
+                    'Raumfahrt-Gambit: “Archen auf dem Sternenmeer“ – wie Noahs Arche, um vor dem Endgericht (Jes 66,15f) zu fliehen (Einsiedel, Kap. 1).',
+                    'Seelen-Fluss-Gambit: Die Seele als Summe der Taten – konstruktiv für Kolonien, destruktiv für Verdammnis (Kap. 3: Auferstehung der Toten).',
+                    'Errettung-Gambit: Balance von Glaube und Taten für Salvation; Menschheit als Lebewesen, das sich durch Tochtermenschheiten vermehrt (Kap. 4).',
+                    'Endgericht-Gambit: Sonne wird Roter Riese in 4-7 Mrd. Jahren – starte jetzt die Vorbereitung! (Kap. 2, wiss. Vorhersagen).'
+                ];
+            } else if (currentModule === 'pandemie') {
+                // Bestehende RFK-Narratives
+                narratives = [
+                    `Pandemie-Ausbruch: Infektionsrate ${ (1 + qFactor * 2).toFixed(1) } (R0), Fälle: ${Math.floor(numParticles * 0.1 * qFactor)} – US Sec Health RFK Jr. (2025): Defunding mRNA-Forschung erhöht Risiken um 30% (PBS/HealthPolicy).`,
+                    `Neue Narrative: RFK Jr.s MAHA-Report warnt vor Vaccine-Hesitancy – Spread +15% durch Politik (BBC, Aug 2025).`,
+                    `Olive Branch to WHO: Globale Prep senkt Ausbreitung, aber Caveats zu Impfungen (HealthPolicy, May 2025). Infizierte: ${infected.length}.`
+                ];
+            }
+            let idx = 0;
+            narrativeInterval = setInterval(() => {
+                document.getElementById('narrative').textContent = 'Narrative: ' + narratives[idx % narratives.length];
+                idx++;
+            }, 5000);
         }
 
-        // Initial laden
-        loadLeaderboard();
+        function optimizeWithDWave() {
+            document.getElementById('feedback').textContent = 'Feedback: D-Wave Optimierung läuft... (Simuliertes Quanten-Annealing für göttliche Gambits)';
+            playSound(880, 0.2);
+            qFactor = Math.min(1, qFactor + Math.random() * 0.3 - 0.1);
+            document.getElementById('qSlider').value = qFactor;
+            updateQFactor(qFactor);
+            score += 100 * qFactor;
+            updateScore();
+            const positions = particles[0].geometry.attributes.position.array;
+            for (let i = 0; i < positions.length; i += 3) {
+                positions[i] += (Math.random() - 0.5) * 0.2 * qFactor;
+            }
+            particles[0].geometry.attributes.position.needsUpdate = true;
+            particles[0].material.color.setHex(0x8a2be2);
+        }
 
-        // Für besseres IFRAME-Score-Sharing: Füge in super-simulation.html hinzu (optional): window.parent.postMessage({score: score}, '*'); und hier: window.addEventListener('message', (e) => { if (e.data.score) currentScore = e.data.score; });
+        function updateQFactor(value) {
+            qFactor = parseFloat(value);
+        }
+
+        function updateSize(value) {
+            numParticles = parseInt(value);
+            updateParticles();
+        }
+
+        function updateScore() {
+            const level = Math.floor(score / 100) + 1;
+            document.getElementById('score').textContent = 'Score: ' + Math.floor(score) + ' | Level: ' + level;
+        }
+
+        function exportScene() {
+            const dataURL = renderer.domElement.toDataURL('image/png');
+            const link = document.createElement('a');
+            link.download = 'fraktal-simulation.png';
+            link.href = dataURL;
+            link.click();
+            document.getElementById('feedback').textContent = 'Feedback: Szene als PNG exportiert!';
+            playSound(660, 0.15);
+        }
+
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+
+        init();
     </script>
 </body>
 </html>
