@@ -2,9 +2,19 @@
 <html lang="de">
 <head>
     <meta charset="UTF-8">
-    <title>Super-Simulation: Fraktale MenschheitsmusterROSARY©®™ 2025, ff  </title>
+    <title>Super-Simulation: Fraktale Menschheitsmuster</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-    <style> body { margin: 0; font-family: Arial; } canvas { display: block; } .controls { position: absolute; top: 10px; left: 10px; background: white; padding: 10px; z-index: 1; } .tabs { margin: 10px; } button { margin: 5px; } #feedback { position: absolute; bottom: 10px; left: 10px; background: white; padding: 10px; } #score { position: absolute; top: 10px; right: 10px; background: lightgreen; padding: 10px; } </style>
+    <style>
+        body { margin: 0; font-family: Arial; }
+        canvas { display: block; }
+        .controls { position: absolute; top: 10px; left: 10px; background: white; padding: 10px; z-index: 1; border-radius: 5px; box-shadow: 0 2px 5px rgba(0,0,0,0.2); }
+        .tabs { margin: 10px; }
+        button { margin: 5px; padding: 8px 12px; background: #4CAF50; color: white; border: none; border-radius: 3px; cursor: pointer; }
+        button:hover { background: #45a049; }
+        #feedback { position: absolute; bottom: 10px; left: 10px; background: white; padding: 10px; border-radius: 5px; box-shadow: 0 2px 5px rgba(0,0,0,0.2); max-width: 300px; }
+        #score { position: absolute; top: 10px; right: 10px; background: lightgreen; padding: 10px; border-radius: 5px; box-shadow: 0 2px 5px rgba(0,0,0,0.2); font-weight: bold; }
+        .slider { width: 100px; }
+    </style>
 </head>
 <body>
     <div class="controls">
@@ -14,90 +24,127 @@
             <button onclick="switchModule('greenmob')">Green Mob (Umwelt)</button>
             <button onclick="optimizeWithDWave()">D-Wave Optimieren</button>
         </div>
-        <label>Q-Faktor: <input type="range" id="qSlider" min="0.1" max="1.5" step="0.1" value="0.618" oninput="updateQ()"></label><br>
-        <label>Modulus: <input type="range" id="modSlider" min="50" max="200" step="10" value="108"></label><br>
-        <label>Größe (Herde/Autos): <input type="number" id="sizeInput" value="500000"></label><br>
-        <button onclick="simulate()">Simulieren</button>
+        <label>Q-Faktor: <input type="range" id="qSlider" min="0" max="1" step="0.1" value="0.5" class="slider" onchange="updateQFactor(this.value)"></label>
+        <p id="currentModule">Modul: Willkommen</p>
     </div>
-    <div id="score">Score: 0</div>
-    <div id="feedback">Wähle ein Modul und starte!</div>
-    
+    <canvas id="canvas"></canvas>
+    <div id="feedback">Feedback: Starte eine Simulation!</div>
+    <div id="score">Score: 0 | Level: 1</div>
+
     <script>
-        let currentModule = 'migration';  // Start-Modul
-        let qOptFromDWave = 0.618;  // Aus D-Wave JSON
-        let totalScore = 0;  // Kumulativer Score (Gauss)
+        let scene, camera, renderer, currentModule = 'none';
+        let particles = [];
+        let score = 0;
+        let qFactor = 0.5;
+        let animationId;
 
-        const scene = new THREE.Scene();
-        const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-        const renderer = new THREE.WebGLRenderer();
-        renderer.setSize(window.innerWidth, window.innerHeight);
-        document.body.appendChild(renderer.domElement);
-        camera.position.z = 20;
+        // Initialisiere Three.js Szene
+        function init() {
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0x000011);
+            camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+            renderer = new THREE.WebGLRenderer({ canvas: document.getElementById('canvas'), antialias: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            camera.position.z = 50;
 
-        function gaussSum(n) { return n * (n + 1) / 2; }  // Für Scores
-
-        function switchModule(module) {
-            currentModule = module;
-            document.getElementById('feedback').innerHTML = `Modul gewechselt zu ${module} – simuliere für Interaktion!`;
-            // Zusammenspiel: Passe q an (z.B. Traffic beeinflusst Migration)
-            if (module === 'traffic') qOptFromDWave *= 0.9;  // "Verstopfung" dämpft
-            else if (module === 'greenmob') qOptFromDWave *= 1.1;  // "Grün" boostet
-            updateQ();
-        }
-
-        function updateQ() {
-            const q = parseFloat(document.getElementById('qSlider').value);
-            qOptFromDWave = q;  // User-Input mit D-Wave kombinieren
-        }
-
-        function optimizeWithDWave() {
-            // Simuliere D-Wave-Call (in echt: fetch('dwave_output.json'))
-            qOptFromDWave = 0.75;  // Beispiel-Optimierung
-            document.getElementById('feedback').innerHTML = 'D-Wave optimiert: q_opt = 0.75 für bessere Harmonie!';
-        }
-
-        function simulate() {
-            const q = parseFloat(document.getElementById('qSlider').value);
-            const mod = parseInt(document.getElementById('modSlider').value);
-            const size = parseInt(document.getElementById('sizeInput').value);
-            
-            // Gauss-Score (kumulativ, modul-spezifisch)
-            const basePoints = gaussSum(Math.min(size / 10000, 100));
-            const moduleBonus = currentModule === 'migration' ? 1.2 : currentModule === 'traffic' ? 1.0 : 1.5;  // Green Mob boost
-            const scaledPoints = Math.round((q * qOptFromDWave * moduleBonus) * basePoints);
-            totalScore += scaledPoints;  // Kumulativ
-            document.getElementById('score').innerHTML = `Total Score: ${totalScore} (Gauss + D-Wave + Modul-Bonus)`;
-            
-            // 3D-Simulation (modul-spezifisch)
-            scene.children = []; // Clear
-            const particles = new THREE.BufferGeometry();
-            const positions = new Float32Array(3000); // 1000 Partikel
-            for (let i = 0; i < 3000; i += 3) {
-                positions[i] = (Math.random() - 0.5) * 10 * q;  // x mit Q
-                positions[i+1] = Math.sin(i / mod * 2 * Math.PI) * 5;  // y zyklisch
-                positions[i+2] = Math.cos(i / mod * 2 * Math.PI) * 5;  // z fraktal
-                // Modul-spezifisch: Migration (orange Herde), Traffic (blau Autos), Green Mob (grün Nodes)
-                if (currentModule === 'migration') positions[i+2] += 1;  // Höher für Herden
-                else if (currentModule === 'traffic') positions[i] *= 0.8;  // Enger für Verkehr
-                else positions[i+1] += 2;  // Breiter für Green
+            // Basis-Partikel für Simulationen erstellen (1000 Punkte)
+            const geometry = new THREE.BufferGeometry();
+            const positions = new Float32Array(1000 * 3);
+            for (let i = 0; i < 1000; i++) {
+                positions[i * 3] = (Math.random() - 0.5) * 100;
+                positions[i * 3 + 1] = (Math.random() - 0.5) * 100;
+                positions[i * 3 + 2] = (Math.random() - 0.5) * 100;
             }
-            particles.setAttribute('position', new THREE.BufferAttribute(positions, 3));
-            let color = currentModule === 'migration' ? 0xffa500 : currentModule === 'traffic' ? 0x0000ff : 0x00ff00;
-            const material = new THREE.PointsMaterial({ color: color, size: 0.1 });
-            const mesh = new THREE.Points(particles, material);
-            scene.add(mesh);
+            geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+            const material = new THREE.PointsMaterial({ color: 0x00ff00, size: 0.5 });
+            const pointCloud = new THREE.Points(geometry, material);
+            scene.add(pointCloud);
+            particles.push(pointCloud); // Für Updates
 
-            // Feedback
-            let narrative = `Simulation für ${currentModule}: Größe ${size}, q=${q}, q_opt=${qOptFromDWave}.<br>`;
-            narrative += `Punkte hinzugefügt: ${scaledPoints} (Zusammenspiel: Traffic dämpft, Green boostet).<br>`;
-            narrative += 'Gamer-Tipp: Optimiere q für hohe Scores – Remigration als natürlicher Flow!';
-            document.getElementById('feedback').innerHTML = narrative;
+            animate();
+        }
 
+        function animate() {
+            animationId = requestAnimationFrame(animate);
+            // Rotation für dynamischen Effekt
+            scene.rotation.y += 0.001 * qFactor;
             renderer.render(scene, camera);
         }
 
-        function animate() { requestAnimationFrame(animate); renderer.render(scene, camera); }
-        animate();
+        function switchModule(module) {
+            currentModule = module;
+            document.getElementById('currentModule').textContent = 'Modul: ' + module;
+            document.getElementById('feedback').textContent = 'Feedback: ' + module + ' aktiviert! Q-Faktor beeinflusst Komplexität.';
+            
+            // Modul-spezifische Logik (einfache Fraktal-ähnliche Bewegungen)
+            const positions = particles[0].geometry.attributes.position.array;
+            for (let i = 0; i < positions.length; i += 3) {
+                switch (module) {
+                    case 'migration':
+                        // Herden-Migration: Wellenbewegung
+                        positions[i + 1] += Math.sin(Date.now() * 0.001 + i) * 0.1 * qFactor;
+                        positions[i] += Math.cos(Date.now() * 0.001 + i) * 0.05 * qFactor;
+                        break;
+                    case 'traffic':
+                        // Stadt-Traffic: Zirkuläre Pfade
+                        const angle = (Date.now() * 0.002 + i) * qFactor;
+                        positions[i] = Math.cos(angle) * 20;
+                        positions[i + 1] = Math.sin(angle) * 20;
+                        break;
+                    case 'greenmob':
+                        // Umwelt-Mob: Fraktale Wachstum (grün, spiralförmig)
+                        particles[0].material.color.setHex(0x00ff00);
+                        const spiral = Math.sqrt(i) * qFactor;
+                        positions[i] = Math.cos(spiral) * spiral;
+                        positions[i + 1] = Math.sin(spiral) * spiral;
+                        positions[i + 2] += 0.01 * qFactor; // Wachstum in Z
+                        break;
+                }
+            }
+            particles[0].geometry.attributes.position.needsUpdate = true;
+
+            // Score erhöhen für Interaktion (gamer-freundlich)
+            score += 10 * qFactor;
+            updateScore();
+        }
+
+        function optimizeWithDWave() {
+            document.getElementById('feedback').textContent = 'Feedback: D-Wave Optimierung läuft... (Simuliert Quanten-Annealing für bessere Fraktale)';
+            // Simuliere Optimierung: Zufällige Verbesserung
+            qFactor = Math.random();
+            document.getElementById('qSlider').value = qFactor;
+            updateQFactor(qFactor);
+            score += 50;
+            updateScore();
+            // Optimiere Partikel-Positionen (einfache "Quanten"-Störung)
+            const positions = particles[0].geometry.attributes.position.array;
+            for (let i = 0; i < positions.length; i += 3) {
+                positions[i] += (Math.random() - 0.5) * 0.1;
+                positions[i + 1] += (Math.random() - 0.5) * 0.1;
+                positions[i + 2] += (Math.random() - 0.5) * 0.1;
+            }
+            particles[0].geometry.attributes.position.needsUpdate = true;
+        }
+
+        function updateQFactor(value) {
+            qFactor = parseFloat(value);
+            document.getElementById('feedback').textContent += ' | Q-Faktor: ' + qFactor;
+        }
+
+        function updateScore() {
+            const level = Math.floor(score / 100) + 1;
+            document.getElementById('score').textContent = 'Score: ' + Math.floor(score) + ' | Level: ' + level;
+        }
+
+        // Resize Handler
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+
+        // Starte die Simulation
+        init();
     </script>
 </body>
 </html>
