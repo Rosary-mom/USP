@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Super-Simulation: Rosenkranz-Schlüssel©®™2025 ff  mit War/Peace Ergänzung</title>
+    <style>
+        body { font-family: Arial, sans-serif; background-color: #f4f4f4; color: #333; margin: 0; padding: 20px; }
+        .cockpit { max-width: 1200px; margin: auto; background: #fff; padding: 20px; border-radius: 10px; box-shadow: 0 4px 8px rgba(0,0,0,0.1); }
+        h1 { text-align: center; color: #007bff; }
+        .section { margin-bottom: 30px; }
+        .slider-container { display: flex; flex-wrap: wrap; gap: 10px; }
+        canvas { width: 100%; height: 400px; border: 1px solid #ddd; border-radius: 5px; }
+        button { background: #007bff; color: white; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer; }
+        button:hover { background: #0056b3; }
+        #output { margin-top: 20px; font-weight: bold; color: #28a745; }
+        #war-peace { background: #ffcc00; padding: 15px; border-radius: 5px; }
+        #bloch-img { display: block; margin: auto; max-width: 100%; }
+    </style>
+    <script src="https://cdn.jsdelivr.net/pyodide/v0.26.1/full/pyodide.js"></script>
+</head>
+<body>
+    <div class="cockpit">
+        <h1>Super-Simulation Cockpit: Rosenkranz-Schlüssel für Verkehr & War/Peace Ergänzung</h1>
+        <p>Willkommen im Gamer-Cockpit! Steuere Parameter wie auf der Gamescom 2025. Simuliere Quanten-Verkehr (Plan A: Friedlich) oder integriere WarAgent (Plan B: Konflikt). Unlocke Levels für optimale Sicherheit!</p>
+        
+        <div class="section">
+            <h2>Rosenkranz-Schlüssel Simulation (Plan A: Friedliche Optimierung)</h2>
+            <div class="slider-container">
+                <!-- Sliders werden von JS/Pyodide generiert -->
+            </div>
+            <button id="run-sim">Simulation Starten</button>
+            <div id="output"></div>
+            <canvas id="plot-canvas"></canvas>
+            <img id="bloch-img" src="" alt="Bloch Sphere" style="display:none;">
+        </div>
+        
+        <div class="section" id="war-peace">
+            <h2>WarAgent Ergänzung (Plan B: Zweischneidiges Schwert)</h2>
+            <p>WarAgent simuliert globale Konflikte mit LLMs als Agenten. Integriere es, um Push-Faktoren (Krieg) vs. Peace zu testen. Lade den Code von GitHub und passe an (benötigt API-Keys für GPT/Claude).</p>
+            <pre><code># Beispiel WarAgent-Aufruf (Python)
+# Install: git clone https://github.com/agiresearch/WarAgent
+# Run: python main.py --model 'gpt-4' --scenario WWI
+class CountryAgent:
+    def generate_action(self, situation):
+        # LLM-basiert: return llm_prompt(situation)
+        pass
+# Integriere mit Rosenkranz: Wenn Q <5, simuliere Krieg und optimiere Q.
+</code></pre>
+            <button id="simulate-war">WarAgent Simulieren (Demo)</button>
+            <div id="war-output">Demo: Länder entscheiden über Krieg/Frieden...</div>
+        </div>
+    </div>
+
+    <script>
+        async function main() {
+            let pyodide = await loadPyodide();
+            await pyodide.loadPackage(['numpy', 'matplotlib', 'micropip']);
+            await pyodide.runPythonAsync(`
+import micropip
+await micropip.install('qutip')
+            `);
+            await pyodide.runPythonAsync(`
+import numpy as np
+import matplotlib.pyplot as plt
+from io import BytesIO
+import base64
+
+def skalenvariant_reichweite(risiko):
+    return np.sqrt(1 / risiko)
+
+def uberlebens_konstante(Q, risiko_factor, K=1.0):
+    return K * (Q / risiko_factor)
+
+def rosenkranz_approximation(Q_start, iterations, unsicherheit=0.1):
+    Q_approx = Q_start
+    for i in range(1, iterations + 1):
+        Q_approx += ((-1)**(i+1) * (unsicherheit**i / i))
+    return Q_approx
+
+def simulate(samples=100, min_risiko=0.05, max_risiko=0.5, iterations=10, unsicherheit=0.1):
+    scale = np.linspace(1, 100, samples)
+    risikofaktor = np.random.uniform(min_risiko, max_risiko, samples)
+    Q_start = 1.0
+    Q_werte = []
+    for s, risiko in zip(scale, risikofaktor):
+        reichweite = skalenvariant_reichweite(risiko)
+        Q_basis = uberlebens_konstante(Q_start, risiko)
+        Q_optim = rosenkranz_approximation(Q_basis, iterations, unsicherheit)
+        Q_werte.append(Q_optim * (s / 100))
+    
+    fig, ax = plt.subplots(figsize=(12, 6))
+    ax.plot(scale, Q_werte, 'b-', label='Optimierter Q-Schlüssel')
+    ax.set_xlabel('Geschwindigkeit/Skala (km/h)')
+    ax.set_ylabel('Q-Wert (Sicherheit)')
+    ax.set_title('Rosenkranz-Schlüssel: Verkehrsrisiko-Optimierung')
+    ax.legend()
+    ax.grid(True)
+    
+    buf = BytesIO()
+    fig.savefig(buf, format="png")
+    buf.seek(0)
+    plt.close(fig)
+    return base64.b64encode(buf.read()).decode('utf-8'), np.mean(Q_werte)
+            `);
+
+            // Sliders dynamisch erzeugen (da ipywidgets nicht direkt in Pyodide, simulieren mit JS)
+            const sliders = [
+                {id: 'samples', min:50, max:500, step:50, value:100, label:'Samples'},
+                {id: 'min_risiko', min:0.01, max:0.2, step:0.01, value:0.05, label:'Min Risiko'},
+                {id: 'max_risiko', min:0.3, max:1.0, step:0.05, value:0.5, label:'Max Risiko'},
+                {id: 'iterations', min:5, max:50, step:5, value:10, label:'Iterationen'},
+                {id: 'unsicherheit', min:0.05, max:0.5, step:0.05, value:0.1, label:'Unsicherheit'}
+            ];
+            const container = document.querySelector('.slider-container');
+            sliders.forEach(s => {
+                const div = document.createElement('div');
+                div.innerHTML = `<label>${s.label}: <input type="range" id="${s.id}" min="${s.min}" max="${s.max}" step="${s.step}" value="${s.value}"><span id="${s.id}-val">${s.value}</span></label>`;
+                container.appendChild(div);
+                document.getElementById(s.id).addEventListener('input', e => document.getElementById(`${s.id}-val`).textContent = e.target.value);
+            });
+
+            document.getElementById('run-sim').addEventListener('click', async () => {
+                const params = sliders.reduce((acc, s) => { acc[s.id] = parseFloat(document.getElementById(s.id).value); return acc; }, {});
+                const code = `simulate(**${JSON.stringify(params)})`;
+                const [imgBase64, meanQ] = await pyodide.runPythonAsync(code);
+                document.getElementById('plot-canvas').toDataURL('image/png', imgBase64);  // Canvas for plot (simplified)
+                const ctx = document.getElementById('plot-canvas').getContext('2d');
+                const img = new Image();
+                img.src = `data:image/png;base64,${imgBase64}`;
+                img.onload = () => ctx.drawImage(img, 0, 0, 1200, 600);
+                document.getElementById('output').textContent = `Durchschnittlicher Q-Schlüssel: ${meanQ.toFixed(2)}\n${meanQ > 10 ? 'Unlocked!' : 'Locked!'}`;
+            });
+
+            // WarAgent Demo (statisch, da LLM nicht browser-side)
+            document.getElementById('simulate-war').addEventListener('click', () => {
+                document.getElementById('war-output').textContent = 'WarAgent Demo: Simuliere WW1... Ergebnis: Frieden durch Diplomatie! (Vollversion via GitHub)';
+            });
+        }
+        main();
+    </script>
+</body>
+</html>
