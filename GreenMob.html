@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GreenMob - Gamified Re-Migration Game</title>
+    <style>
+        body { font-family: Arial; background: #f0f0f2; text-align: center; margin: 20px; }
+        canvas { border: 1px solid #ccc; margin: 10px; cursor: pointer; box-shadow: 0 0 5px rgba(0,0,0,0.2); transition: box-shadow 0.3s, transform 0.3s; }
+        canvas:hover { box-shadow: 0 0 15px rgba(0,0,0,0.3); transform: scale(1.05); }
+        #game-container { max-width: 900px; margin: auto; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 0 10px rgba(0,0,0,0.1); }
+        #score { font-size: 24px; color: #4CAF50; transition: color 0.5s; }
+        #ethics { margin: 20px; padding: 10px; background: #e0f7fa; border-radius: 8px; text-align: left; }
+        button { padding: 10px 20px; background: #2196F3; color: white; border: none; cursor: pointer; border-radius: 5px; transition: background 0.3s; }
+        button:hover { background: #1E88E5; }
+        #level-info { font-size: 18px; margin: 10px; }
+        #hover-info { font-size: 14px; color: #666; margin: 5px; }
+        .chart-row { display: flex; justify-content: space-around; flex-wrap: wrap; }
+    </style>
+    <audio id="levelUp" src="level_up.mp3"></audio>  <!-- Optional: Upload a MP3 for sound -->
+</head>
+<body>
+    <div id="game-container">
+        <h1>GreenMob Game: Re-Migration Simulation</h1>
+        <p>Enter parameters, then click 'Next Level' to advance. Hover over charts for details!</p>
+        <div class="chart-row">
+            <canvas id="pieCurrent" width="300" height="300"></canvas>
+            <canvas id="pie2045" width="300" height="300"></canvas>
+            <canvas id="pieReMig" width="300" height="300"></canvas>
+        </div>
+        <div id="score">Score: 0/100</div>
+        <div id="level-info">Current Level (Year): 2025</div>
+        <div id="hover-info">Hover over a chart to see details</div>
+        <button onclick="nextLevel()">Next Level (Year)</button>
+        <div id="ethics">
+            <h2>Ethische und Effiziente Vorteile</h2>
+            <ul>
+                <li><strong>Ethische:</strong> Sharia-konform (Reue statt Strafen); keine 'Belohnung' für Kriminalität; Selbsthilfe (S³-Formel: Selbst-Versorgung, Selbst-Verwaltung, Selbst-Verbreitung).</li>
+                <li><strong>Efiziente:</strong> Social Cost auf Null (Ersparnis von 500 Mrd. € für Strukturen statt Kriege); Kriminalitätsreduktion; Populations-Neutralität bis 2045 (GG §148h-Extension).</li>
+            </ul>
+        </div>
+    </div>
+    <script>
+        // Simulation Parameters (JS Version)
+        const startYear = 2025;
+        const endYear = 2045;
+        const years = Array.from({length: endYear - startYear + 1}, (_, i) => startYear + i);
+        const nativePop = 70633000;
+        let migrantPop = 12367000;
+        const reMigRate = parseFloat(prompt("Re-Migration Rate (0.05-0.20, default 0.10):") || 0.10);
+        const selfWorthBoost = parseFloat(prompt("Self-Worth Boost (0.10-0.30, default 0.20):") || 0.20);
+        const crimeRateMigrant = parseFloat(prompt("Migrant Crime Rate (0.05-0.10, default 0.07):") || 0.07);
+        const crimeRateNative = 0.05;
+
+        // Arrays for data
+        let migrantPops = new Array(years.length).fill(0);
+        let crimeRates = new Array(years.length).fill(0);
+        let reMigSuccesses = new Array(years.length).fill(0);
+        migrantPops[0] = migrantPop;
+        crimeRates[0] = (nativePop / (nativePop + migrantPop) * crimeRateNative) + (migrantPop / (nativePop + migrantPop) * crimeRateMigrant);
+        reMigSuccesses[0] = 0;
+
+        for (let i = 1; i < years.length; i++) {
+            const reMig = migrantPops[i-1] * reMigRate * (1 + selfWorthBoost);
+            migrantPops[i] = migrantPops[i-1] - reMig;
+            const total = nativePop + migrantPops[i];
+            crimeRates[i] = (nativePop / total * crimeRateNative) + (migrantPops[i] / total * crimeRateMigrant);
+            reMigSuccesses[i] = reMig + reMigSuccesses[i-1];
+        }
+
+        // Gamification: Score Calculation
+        let score = 0;
+        const crimeReduction = (crimeRates[0] - crimeRates[crimeRates.length - 1]) * 100;
+        let achievements = [];
+        if (crimeReduction > 0.5) {
+            score += 30;
+            achievements.push('Crime Reduced!');
+        }
+        if (migrantPops[migrantPops.length - 1] < 1000000) {
+            score += 50;
+            achievements.push('Neutrality Achieved!');
+        }
+        const savings = 500000000000 * (1 - (migrantPops[migrantPops.length - 1] / 12367000));
+        if (savings > 400000000000) {
+            score += 20;
+            achievements.push('Budget Saved!');
+        }
+        document.getElementById('score').innerText = `Score: ${score}/100 - Achievements: ${achievements.join(', ') || 'None'}`;
+
+        let currentLevel = 0;
+
+        function drawPie(canvasId, title, labels, data, colors) {
+            const canvas = document.getElementById(canvasId);
+            const ctx = canvas.getContext('2d');
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            let startAngle = 0;
+            const total = data.reduce((a, b) => a + b, 0);
+            ctx.font = '16px Arial';
+            ctx.fillText(title, 10, 20);
+            for (let i = 0; i < data.length; i++) {
+                const angle = (data[i] / total) * 2 * Math.PI;
+                ctx.beginPath();
+                ctx.moveTo(150, 150);
+                ctx.arc(150, 150, 100, startAngle, startAngle + angle);
+                ctx.closePath();
+                ctx.fillStyle = colors[i];
+                ctx.fill();
+                // Improved Label in pie
+                const labelAngle = startAngle + angle / 2;
+                const labelX = 150 + 60 * Math.cos(labelAngle);
+                const labelY = 150 + 60 * Math.sin(labelAngle);
+                ctx.fillStyle = '#fff';
+                ctx.fillText((data[i] / total * 100).toFixed(1) + '%', labelX - 15, labelY + 5);
+                startAngle += angle;
+            }
+            // Hover event for interactivity
+            canvas.addEventListener('mousemove', (e) => {
+                const rect = canvas.getBoundingClientRect();
+                const x = e.clientX - rect.left;
+                const y = e.clientY - rect.top;
+                const distance = Math.sqrt((x - 150)**2 + (y - 150)**2);
+                let hoverText = 'Hover for details';
+                if (distance < 100) {
+                    hoverText = `Total: ${total.toLocaleString()} - Click for more`;
+                }
+                document.getElementById('hover-info').innerText = hoverText;
+            });
+            canvas.addEventListener('click', (e) => {
+                alert(`${title} Details: ${labels.join(', ')} - Values: ${data.map(v => v.toLocaleString()).join(', ')}`);
+            });
+        }
+
+        // Initial Draw
+        drawPie('pieCurrent', 'Current Year Shares', ['Native', 'Migrant'], [nativePop, migrantPops[0]], ['#4CAF50', '#FF5722']);
+        drawPie('pie2045', '2045 Shares', ['Native', 'Migrant'], [nativePop, migrantPops[migrantPops.length - 1]], ['#4CAF50', '#FF5722']);
+        drawPie('pieReMig', 'Re-Migration 2045', ['Re-Migrated', 'Remaining'], [reMigSuccesses[reMigSuccesses.length - 1], migrantPops[migrantPops.length - 1]], ['#2196F3', '#FFC107']);
+
+        function nextLevel() {
+            currentLevel = (currentLevel + 1) % years.length;
+            document.getElementById('level-info').innerText = `Current Level (Year): ${years[currentLevel]} | Migrant Pop: ${migrantPops[currentLevel].toLocaleString()}`;
+            // Redraw current pie dynamically
+            drawPie('pieCurrent', `Current Year (${years[currentLevel]}) Shares`, ['Native', 'Migrant'], [nativePop, migrantPops[currentLevel]], ['#4CAF50', '#FF5722']);
+            // Flash animation
+            const scoreEl = document.getElementById('score');
+            scoreEl.style.color = 'red';
+            setTimeout(() => scoreEl.style.color = '#4CAF50', 500);
+            // Sound
+            const audio = document.getElementById('levelUp');
+            if (audio) audio.play();
+            console.log("Level Up Sound!");
+        }
+    </script>
+</body>
+</html>
