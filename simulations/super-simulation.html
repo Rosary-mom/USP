@@ -381,3 +381,38 @@
     </script>
 </body>
 </html>
+// JS-Version des VELO-Loop für Web
+class VELOLoop {
+    constructor(userData) {
+        this.data = userData; // z.B. {freiheit: 100, anpassung: 0.6}
+        this.score = 0;
+    }
+
+    verify() {
+        let adaptation = Math.random() * this.data.anpassung;
+        if (adaptation > 0.7) this.score += 50;
+        return this.score;
+    }
+
+    loop(iterations = 10) {
+        for (let i = 0; i < iterations; i++) {
+            this.verify();
+            this.data.anpassung += (this.score / 1000); // Emergent Anpassung
+        }
+        return this.score;
+    }
+}
+
+// Beispiel: Button-Trigger
+document.addEventListener('DOMContentLoaded', () => {
+    let button = document.createElement('button');
+    button.textContent = 'VELO-Loop starten';
+    button.onclick = () => {
+        let user = {freiheit: 100, anpassung: 0.6};
+        let velo = new VELOLoop(user);
+        let score = velo.loop();
+        alert(`Emergent Score: ${score}`);
+        // Hier QR generieren (via qrcode.js Library, falls hinzugefügt)
+    };
+    document.body.appendChild(button);
+});
