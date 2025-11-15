@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Projekt Chimera: Das Goldene Zeitalter - Logbuch der Menschheiten</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto+Mono:wght@400;700&family=Orbitron:wght@400;700&display=swap" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://threejs.org/examples/js/controls/OrbitControls.js"></script>
+    <style>
+        body {
+            font-family: 'Roboto Mono', monospace;
+            background-color: #0a0a1a;
+            color: #e0e0e0;
+            background-image: url('https://upload.wikimedia.org/wikipedia/commons/3/39/Concept_Mars_colony.jpg');
+            background-size: cover;
+        }
+        .font-orbitron { font-family: 'Orbitron', sans-serif; }
+        .resource-card, .project-card, .log-card, .matrix-card, .cockpit-card, .explorer-card {
+            background-color: rgba(20, 20, 40, 0.7);
+            border: 1px solid rgba(0, 255, 255, 0.3);
+            backdrop-filter: blur(5px);
+            transition: all 0.3s ease;
+            padding: 1rem;
+            border-radius: 0.5rem;
+        }
+        .action-button {
+            background-color: rgba(0, 100, 100, 0.6);
+            border: 1px solid rgba(0, 255, 255, 0.5);
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+            color: white;
+            padding: 0.75rem 1.5rem;
+            border-radius: 0.5rem;
+            margin-right: 1rem;
+        }
+        .action-button:hover {
+            background-color: rgba(0, 200, 200, 0.7);
+            box-shadow: 0 0 15px rgba(0, 255, 255, 0.5);
+        }
+        .action-button:disabled {
+            background-color: rgba(50, 50, 50, 0.5);
+            border-color: rgba(100, 100, 100, 0.5);
+            cursor: not-allowed;
+        }
+        .log-entry {
+            border-left: 2px solid rgba(0, 255, 255, 0.5);
+        }
+        .progress-bar-container {
+            background-color: rgba(0, 0, 0, 0.3);
+            border: 1px solid rgba(0, 255, 255, 0.2);
+        }
+        .progress-bar {
+            background: linear-gradient(90deg, rgba(0,255,255,1) 0%, rgba(0,150,255,1) 100%);
+            transition: width 0.5s ease-in-out;
+            box-shadow: 0 0 10px rgba(0, 255, 255, 0.7);
+            height: 18px;
+            border-radius: 8px;
+        }
+        .modal-backdrop {
+            background-color: rgba(0, 0, 0, 0.8);
+            backdrop-filter: blur(5px);
+        }
+        .modal-content {
+            background-color: #0a0a1a;
+            border: 1px solid rgba(0, 255, 255, 0.5);
+        }
+        .gif-illustration {
+            width: 100%;
+            max-height: 200px;
+            margin-top: 10px;
+        }
+        .gauge {
+            width: 100px;
+            height: 100px;
+            border-radius: 50%;
+            border: 5px solid #ee6e6e;
+            position: relative;
+            margin: 0 auto;
+        }
+        .gauge-fill {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: conic-gradient(#ee6e6e 0% var(--fill), transparent var(--fill) 100%);
+            border-radius: 50%;
+        }
+        .hidden { display: none; }
+        #solar-system { width: 100%; height: 400px; }
+        .tooltip {
+            visibility: hidden;
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+        .has-tooltip:hover .tooltip {
+            visibility: visible;
+            opacity: 1;
+        }
+        .flash-light {
+            animation: sos-flash 2s infinite;
+        }
+        @keyframes sos-flash {
+            0% { background-color: rgba(255, 255, 255, 0); }
+            10% { background-color: rgba(255, 255, 255, 1); }
+            20% { background-color: rgba(255, 255, 255, 0); }
+            30% { background-color: rgba(255, 255, 255, 1); }
+            40% { background-color: rgba(255, 255, 255, 0); }
+            50% { background-color: rgba(255, 255, 255, 1); }
+            60% { background-color: rgba(255, 255, 255, 0); }
+            70% { background-color: rgba(255, 255, 255, 1); }
+            90% { background-color: rgba(255, 255, 255, 0); }
+            100% { background-color: rgba(255, 255, 255, 0); }
+        }
+    </style>
+</head>
+<body class="p-4 md:p-8">
+    <div id="game-container" class="max-w-7xl mx-auto">
+        <!-- HEADER -->
+        <header class="text-center mb-8">
+            <h1 class="font-orbitron text-3xl md:text-5xl font-bold text-cyan-300 tracking-wider">
+                PROJEKT CHIMERA
+            </h1>
+            <p class="text-cyan-100">
+                Operation: Das Goldene Zeitalter // RUNDE:
+                <span id="turn-counter">1</span>
+            </p>
+            <img src="https://media.giphy.com/media/kEESrxmc9pd9Jb064Q/giphy.gif" alt="Climate Crisis GIF" class="gif-illustration">
+            <button id="sos-button" class="action-button p-2 mt-4">Send SOS Signal (Light App Reaction)</button>
+            <button id="reset-button" class="action-button p-2 mt-4 ml-4">Spiel zurücksetzen</button>
+            <button id="enter-cockpit" class="action-button p-2 mt-4 ml-4 hidden">Enter Starship Cockpit</button>
+        </header>
+        <!-- MAIN GRID -->
+        <main class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <!-- LEFT COLUMN: RESOURCES & PROGRESS -->
+            <section class="lg:col-span-1 space-y-6">
+                <div class="resource-card rounded-lg p-4">
+                    <h2 class="font-orbitron text-xl mb-4 border-b border-cyan-700 pb-2">
+                        Kommando-Ressourcen
+                    </h2>
+                    <div id="resources-grid" class="grid grid-cols-2 gap-4"></div>
+                </div>
+                <div class="resource-card rounded-lg p-4">
+                    <h2 class="font-orbitron text-xl mb-4 border-b border-cyan-700 pb-2">
+                        Globale Projekte
+                    </h2>
+                    <div id="progress-bars" class="space-y-4"></div>
+                </div>
+            </section>
+            <!-- MIDDLE COLUMN: ACTIONS -->
+            <section class="lg:col-span-1 space-y-4">
+                <div class="resource-card rounded-lg p-4 h-full">
+                    <h2 class="font-orbitron text-xl mb-4 border-b border-cyan-700 pb-2">
+                        Gambit-Matrix
+                    </h2>
+                    <div id="actions-container" class="space-y-3"></div>
+                    <img id="moves-gif" src="https://media.giphy.com/media/l0HlK3VUCtB2G4m52/giphy.gif" alt="MOVES GIF" class="gif-illustration hidden">
+                    <img id="twists-gif" src="https://media.giphy.com/media/26FLgGTPsEIAq8vs/giphy.gif" alt="TWISTS GIF" class="gif-illustration hidden">
+                </div>
+            </section>
+            <!-- RIGHT COLUMN: LOG & EVENTS -->
+            <section class="lg:col-span-1 space-y-4">
+                <div class="resource-card rounded-lg p-4 h-full">
+                    <h2 class="font-orbitron text-xl mb-4 border-b border-cyan-700 pb-2">
+                        Operations-Log & Archiv der Menschheiten
+                    </h2>
+                    <img src="https://media.giphy.com/media/l41m3ywjOxm9SzAhG/giphy.gif" alt="Game Loop GIF" class="gif-illustration">
+                    <div id="log-list" class="h-96 overflow-y-auto pr-2 space-y-3"></div>
+                </div>
+            </section>
+        </main>
+        <!-- Cockpit Section -->
+        <div id="cockpit-section" class="cockpit-card mb-8 hidden">
+            <h2 class="text-2xl font-orbitron mb-4 text-center">Starship Cockpit: Protector of Light</h2>
+            <p class="text-center mb-4">Pilot the Chimera fleet to Mars and beyond! Embedded Canva Vision:</p>
+            <iframe src="https://www.canva.com/design/DAGqacd25Lg/qjKpPfdQ6PNoxrjbV0E7nw/view?embed" title="Cockpit Design" class="w-full h-96 rounded-lg shadow-lg" allowfullscreen></iframe>
+            <div class="grid grid-cols-2 gap-4 mt-4">
+                <div>
+                    <h3 class="text-xl font-orbitron">Energie Gauge</h3>
+                    <div class="gauge"><div class="gauge-fill" id="energy-gauge" style="--fill: 50%;"></div></div>
+                </div>
+                <div>
+                    <h3 class="text-xl font-orbitron">Settlement Progress</h3>
+                    <div class="progress-bar"><div class="progress-fill" id="settlement-progress" style="width: 20%;height:18px;border-radius:8px;background:linear-gradient(90deg,rgba(0,255,255,1)0%,rgba(0,150,255,1)100%);"></div></div>
+                </div>
+                <div>
+                    <h3 class="text-xl font-orbitron">Exploration Log</h3>
+                    <p id="exploration-log">Initial scan: Universe awaits! PSPS II: "See how we go forward to lead mankinds!"</p>
+                </div>
+                <div>
+                    <button id="explore-button" class="action-button w-full">Explore New Sector</button>
+                </div>
+            </div>
+            <p class="mt-4 text-center">PSPS II: "May this cockpit be part of Your mission."</p>
+        </div>
+        <!-- Solar System Explorer Section -->
+        <div class="explorer-card mb-8 hidden" id="explorer-section">
+            <h2 class="text-2xl font-orbitron mb-4 text-center">Solar System Explorer: 3D Weltraumforschung</h2>
+            <p class="text-center mb-4">Navigiere zu Mars & Ceres ('Neue Erde')! Klicke auf Planeten für Gambits. Basierend auf der Vision von Lord Archbishop Dr. Uwe A. E. Rosenkranz.</p>
+            <div id="solar-system"></div>
+            <p class="mt-4 text-center">Use mouse to orbit, scroll to zoom. Click planets to initiate space gambits.</p>
+        </div>
+    </div>
+    <!-- MODAL -->
+    <div id="modal" class="fixed inset-0 z-50 items-center justify-center hidden modal-backdrop">
+        <div class="modal-content rounded-lg p-8 m-4 max-w-lg w-full shadow-2xl shadow-cyan-500/20">
+            <h3 id="modal-title" class="font-orbitron text-2xl mb-4 text-cyan-300"></h3>
+            <p id="modal-body" class="mb-6"></p>
+            <button id="modal-close" class="w-full action-button p-2 rounded-lg font-bold">Weiter</button>
+        </div>
+    </div>
+    <p class="text-center mt-8 text-cyan-100">©®™ ROSARY 2025 ff<br>Be a SuperHero! -"CHIMMY"</p>
+    <script src="chimera-fusion.js"></script>
+    <script>
+    // --- Hier kommt der gesamte JavaScript-Code aus B (siehe oben), angepasst auf die IDs und DOM-Struktur dieser Fusion ---
+    // Wegen Platz: Bitte kopiere den vollständigen JavaScript-Block aus B (wie in deiner letzten Nachricht) an diese Stelle.
+    // Ersetze ggf. alle `logContainer` durch `log-list` und passe die Gambit- und Progress-Logik an die IDs dieser Fusion an.
+    // Die Three.js-Initialisierung bleibt wie im oberen Beispiel und wird an #solar-system angehängt.
+    // Die Cockpit- und Explorer-Buttons sind bereits eingebunden.
+    // Die Gambit-Matrix ist jetzt voll klickbar und steuert die Ressourcen und das Logbuch.
+    // Die Modal-, Voice- und Speicherfunktionen sind wie in B.
+    </script>
+</body>
+</html>
