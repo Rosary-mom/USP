@@ -1,5 +1,197 @@
 <meta http-equiv="refresh" content="0; url=simulations/super-simulation.html">
 <iframe src="https://rosary-mom.github.io/USP/emergent_freedom.html" width="100%" height="800"></iframe>
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <title>ROSARY RIDGEBED • 7 Gaben Hügelbeet Pyramide</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <script src="https://cdn.jsdelivr.net/npm/three@0.167.1/build/three.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.167.1/examples/js/controls/OrbitControls.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.167.1/examples/js/exporters/STLExporter.js"></script>
+  <style>
+    body{margin:0;overflow:hidden;background:#001133;color:#fff;font-family:Arial}
+    #info,#controls{position:absolute;padding:20px;border-radius:12px;backdrop-filter:blur(12px);border:1px solid rgba(212,175,55,0.5);background:rgba(0,0,0,0.7);z-index:10}
+    #info{top:10px;left:10px;max-width:420px}
+    #controls{bottom:20px;left:20px}
+    button{padding:10px 20px;margin:5px;background:linear-gradient(45deg,#d4af37,#ffd700);border:none;border-radius:8px;cursor:pointer;font-weight:bold;color:#000;box-shadow:0 4px 10px rgba(0,0,0,0.5)}
+    #modal{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.95);z-index:100;justify-content:center;align-items:center}
+    #modal-content{background:#111;padding:35px;border-radius:15px;border:3px solid #d4af37;max-width:650px;text-align:center}
+    .close{float:right;font-size:32px;cursor:pointer;color:#d4af37}
+  </style>
+</head>
+<body>
+<div id="canvas-container"></div>
 
+<div id="info">
+  <h1 style="margin:0;color:#d4af37;text-shadow:0 0 15px gold">7 Gaben des Hl. Geistes – Goldener Weg</h1>
+  <button onclick="toggleView()">Laien ↔ Forscher Modus</button>
+  <div id="laien"><p style="line-height:1.6"><b>Eselsbrücke:</b> Der Hügel wächst wie eine Schnecke 🐌 – jede Windung größer (Fibonacci). Jede Schicht ist eine Gabe – von der Demut unten bis zur Weisheit oben.</p></div>
+  <div id="forscher" style="display:none"><p style="line-height:1.6"><b>Rosenkranz-Approximation n=17 → 153</b><br>h ≈ Σ binom(17,k) (1/φ)^k · h^(k)(Q)<br>Skaleninvarianz: S(r) = k · r^φ</p></div>
+</div>
+
+<div id="controls">
+  <button onclick="camera.position.set(10,10,15);controls.reset()">Ansicht zurück</button>
+  <button onclick="isRotating=!isRotating">Rotation an/aus</button>
+  <button onclick="exportSTL()">3D-Druck STL</button>
+</div>
+
+<div id="modal" onclick="this.style.display='none'">
+  <div id="modal-content" onclick="event.stopPropagation()">
+    <span class="close">×</span>
+    <h2 id="modal-title" style="color:#d4af37"></h2>
+    <p id="modal-psalm"></p>
+    <p id="modal-denk" style="color:#d4af37;font-style:italic;"></p>
+  </div>
+</div>
+
+<script>
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x001133);
+
+const camera = new THREE.PerspectiveCamera(60, window.innerWidth/window.innerHeight, 0.1, 1000);
+camera.position.set(10,10,15);
+
+const renderer = new THREE.WebGLRenderer({antialias:true});
+renderer.setSize(window.innerWidth, window.innerHeight);
+document.getElementById('canvas-container').appendChild(renderer.domElement);
+
+const controls = new THREE.OrbitControls(camera, renderer.domElement);
+controls.enableDamping = true;
+
+let isRotating = true;
+const terraces = [];
+
+// Gras-Textur
+const loader = new THREE.TextureLoader();
+const grass = loader.load('https://i.imgur.com/4tZEm8T.jpeg');
+grass.wrapS = grass.wrapT = THREE.RepeatWrapping;
+grass.repeat.set(12,12);
+
+// 7 Schichten
+const colors = [0x8b4513,0x8b5a2b,0x228b22,0x654321,0x4b3621,0x5d4037,0x228b22];
+const gaben = ["Furcht des Herrn","Frömmigkeit","Erkenntnis","Stärke","Rat","Verstand","Weisheit"];
+for(let i=0;i<7;i++){
+  const h = (i+1)/8*16;
+  const r = 9*(1-i/8);
+  const geo = new THREE.CylinderGeometry(r, r+1.2, 2.5, 64,1,true);
+  const mat = new THREE.MeshPhongMaterial({
+    color: colors[i],
+    map: i===6 ? grass : null,
+    bumpMap: grass,
+    bumpScale: 0.7,
+    shininess: 40
+  });
+  const mesh = new THREE.Mesh(geo, mat);
+  mesh.position.y = -8 + h;
+  scene.add(mesh);
+  terraces.push(mesh);
+}
+
+// Goldene Spirale
+const points = [];
+let radius = 0.3, angle = 0, y = -8;
+for(let i=0;i<1400;i++){
+  points.push(new THREE.Vector3(radius*Math.cos(angle), y, radius*Math.sin(angle)));
+  angle += 0.13;
+  radius += 0.009;
+  if(i%100===0) y += 0.9;
+}
+const curve = new THREE.CatmullRomCurve3(points);
+const tubeGeo = new THREE.TubeGeometry(curve,1400,0.25,16,false);
+const tubeMat = new THREE.MeshPhongMaterial({color:0xffd700,emissive:0xaa8800,shininess:150});
+const spiral = new THREE.Mesh(tubeGeo, tubeMat);
+scene.add(spiral);
+
+// Salomonisches Siegel + Pyramide oben
+const starShape = new THREE.Shape();
+const outer = 1.5, inner = 0.75;
+for(let i=0;i<12;i++){
+  const a = i/6*Math.PI;
+  const r = i%2===0 ? outer : inner;
+  i===0 ? starShape.moveTo(r*Math.sin(a),r*Math.cos(a)) : starShape.lineTo(r*Math.sin(a),r*Math.cos(a));
+}
+starShape.closePath();
+const starGeo = new THREE.ExtrudeGeometry(starShape,{depth:0.4,bevelEnabled:true});
+const starMat = new THREE.MeshPhongMaterial({color:0xffd700,emissive:0xaa8800});
+const star = new THREE.Mesh(starGeo, starMat);
+star.rotation.x = -Math.PI/2;
+star.position.set(0,10.6,0);
+scene.add(star);
+
+const pyramid = new THREE.Mesh(new THREE.ConeGeometry(1.9,4.2,6), starMat);
+pyramid.position.y = 9.9;
+scene.add(pyramid);
+
+// LICHT – jetzt hell und golden
+scene.add(new THREE.AmbientLight(0xffffff, 4));
+const sun = new THREE.DirectionalLight(0xfff8e1, 10);
+sun.position.set(15,35,15);
+scene.add(sun);
+scene.add(new THREE.PointLight(0xffd700, 8, 100));
+scene.add(new THREE.HemisphereLight(0x87ceeb, 0x228b22, 5));
+
+// Modal-Daten
+const data = [
+  {psalm:"Psalm 120", text:"In meiner Not rief ich zum Herrn …", denk:"Kingfisher-Gesetz"},
+  {psalm:"Psalm 122", text:"Freut euch mit mir …", denk:"DiaKonos-Gesetz"},
+  {psalm:"Psalm 124", text:"Wäre der Herr nicht bei uns …", denk:"Skaleninvarianz"},
+  {psalm:"Psalm 126", text:"Die mit Tränen säen …", denk:"Hebel-Gesetz"},
+  {psalm:"Psalm 128", text:"Wohl dem, der den Herrn fürchtet …", denk:"Rosenkranz-Iteration"},
+  {psalm:"Psalm 130", text:"Aus den Tiefen rufe ich …", denk:"Coan-Paradoxon"},
+  {psalm:"Psalm 134", text:"Segnet den Herrn …", denk:"Heureka – Vollendung"}
+];
+
+// Raycaster
+const raycaster = new THREE.Raycaster();
+const mouse = new THREE.Vector2();
+window.addEventListener('click', e => {
+  mouse.x = (e.clientX/window.innerWidth)*2-1;
+  mouse.y = -(e.clientY/window.innerHeight)*2+1;
+  raycaster.setFromCamera(mouse,camera);
+  const hits = raycaster.intersectObjects(terraces);
+  if(hits.length){
+    const i = terraces.indexOf(hits[0].object);
+    document.getElementById('modal-title').textContent = gaben[i];
+    document.getElementById('modal-psalm').textContent = data[i].psalm + ": " + data[i].text;
+    document.getElementById('modal-denk').textContent = "Denkgesetz: " + data[i].denk;
+    document.getElementById('modal').style.display = 'flex';
+  }
+});
+
+// Export + toggle + animate
+function exportSTL(){
+  const exporter = new THREE.STLExporter();
+  const stl = exporter.parse(scene);
+  const blob = new Blob([stl],{type:'text/plain'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'rosary_ridgebed.stl';
+  a.click();
+}
+
+function toggleView(){
+  const l = document.getElementById('laien');
+  const f = document.getElementById('forscher');
+  l.style.display = l.style.display==='none' ? 'block' : 'none';
+  f.style.display = f.style.display==='none' ? 'block' : 'none';
+}
+
+function animate(){
+  requestAnimationFrame(animate);
+  if(isRotating) spiral.rotation.y += 0.002;
+  controls.update();
+  renderer.render(scene,camera);
+}
+animate();
+
+window.onresize = () => {
+  camera.aspect = window.innerWidth/window.innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(window.innerWidth,window.innerHeight);
+};
+</script>
+</body>
+</html>
 
 
