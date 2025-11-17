@@ -143,7 +143,7 @@ const data = [
 // Raycaster – jetzt mit korrektem '
 const raycaster = new THREE.Raycaster();
 const mouse = new THREE.Vector2();
-window.addEventListener('click', e => {  // <-- das ' war der Fehler!
+window.addEventListener('click', e => {
   mouse.x = (e.clientX/window.innerWidth)*2-1;
   mouse.y = -(e.clientY/window.innerHeight)*2+1;
   raycaster.setFromCamera(mouse,camera);
