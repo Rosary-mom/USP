@@ -2,7 +2,7 @@
 <html lang="de">
 <head>
   <meta charset="utf-8">
-  <title>ROSARY RIDGEBED©® • 7 Gaben Hügelbeet Pyramide</title>
+  <title>ROSARY RIDGEBED • 7 Gaben Hügelbeet Pyramide</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <script src="https://cdn.jsdelivr.net/npm/three@0.167.1/build/three.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/three@0.167.1/examples/js/controls/OrbitControls.js"></script>
@@ -60,13 +60,18 @@ controls.enableDamping = true;
 let isRotating = true;
 const terraces = [];
 
-// Gras-Textur
+// Gras-Textur (wird asynchron geladen – fallback farbe)
 const loader = new THREE.TextureLoader();
-const grass = loader.load('https://i.imgur.com/4tZEm8T.jpeg');
-grass.wrapS = grass.wrapT = THREE.RepeatWrapping;
-grass.repeat.set(12,12);
+let grass;
+loader.load('https://i.imgur.com/4tZEm8T.jpeg', texture => {
+  grass = texture;
+  grass.wrapS = grass.wrapT = THREE.RepeatWrapping;
+  grass.repeat.set(12,12);
+  // neu rendern wenn Textur geladen
+  renderer.render(scene, camera);
+});
 
-// 7 Schichten
+// 7 Schichten Hügelbeet
 const colors = [0x8b4513,0x8b5a2b,0x228b22,0x654321,0x4b3621,0x5d4037,0x228b22];
 const gaben = ["Furcht des Herrn","Frömmigkeit","Erkenntnis","Stärke","Rat","Verstand","Weisheit"];
 for(let i=0;i<7;i++){
@@ -75,8 +80,8 @@ for(let i=0;i<7;i++){
   const geo = new THREE.CylinderGeometry(r, r+1.2, 2.5, 64,1,true);
   const mat = new THREE.MeshPhongMaterial({
     color: colors[i],
-    map: i===6 ? grass : null,
-    bumpMap: grass,
+    map: i===6 && grass ? grass : null,
+    bumpMap: grass || null,
     bumpScale: 0.7,
     shininess: 40
   });
@@ -121,13 +126,13 @@ const pyramid = new THREE.Mesh(new THREE.ConeGeometry(1.9,4.2,6), starMat);
 pyramid.position.y = 9.9;
 scene.add(pyramid);
 
-// LICHT – hell und golden
-scene.add(new THREE.AmbientLight(0xffffff, 4));
-const sun = new THREE.DirectionalLight(0xfff8e1, 10);
-sun.position.set(15,35,15);
+// LICHT – jetzt wirklich hell!
+scene.add(new THREE.AmbientLight(0xffffff, 5));
+const sun = new THREE.DirectionalLight(0xfff8e1, 12);
+sun.position.set(15,40,15);
 scene.add(sun);
-scene.add(new THREE.PointLight(0xffd700, 8, 100));
-scene.add(new THREE.HemisphereLight(0x87ceeb, 0x228b22, 5));
+scene.add(new THREE.PointLight(0xffd700, 10, 100));
+scene.add(new THREE.HemisphereLight(0x87ceeb, 0x228b22, 6));
 
 // Modal-Daten
 const data = [
@@ -140,7 +145,7 @@ const data = [
   {psalm:"Psalm 134", text:"Segnet den Herrn …", denk:"Heureka – Vollendung"}
 ];
 
-// Raycaster – jetzt mit korrektem '
+// Raycaster – jetzt 100 % korrekt
 const raycaster = new THREE.Raycaster();
 const mouse = new THREE.Vector2();
 window.addEventListener('click', e => {
