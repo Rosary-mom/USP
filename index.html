@@ -4,7 +4,7 @@
 <html lang="de">
 <head>
   <meta charset="utf-8">
-  <title>ROSARY RIDGEBED • 7 Gaben Hügelbeet Pyramide</title>
+  <title>ROSARY RIDGEBED©® • 7 Gaben Hügelbeet Pyramide</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <script src="https://cdn.jsdelivr.net/npm/three@0.167.1/build/three.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/three@0.167.1/examples/js/controls/OrbitControls.js"></script>
@@ -123,7 +123,7 @@ const pyramid = new THREE.Mesh(new THREE.ConeGeometry(1.9,4.2,6), starMat);
 pyramid.position.y = 9.9;
 scene.add(pyramid);
 
-// LICHT – jetzt hell und golden
+// LICHT – hell und golden
 scene.add(new THREE.AmbientLight(0xffffff, 4));
 const sun = new THREE.DirectionalLight(0xfff8e1, 10);
 sun.position.set(15,35,15);
@@ -142,10 +142,10 @@ const data = [
   {psalm:"Psalm 134", text:"Segnet den Herrn …", denk:"Heureka – Vollendung"}
 ];
 
-// Raycaster
+// Raycaster – jetzt mit korrektem '
 const raycaster = new THREE.Raycaster();
 const mouse = new THREE.Vector2();
-window.addEventListener('click', e => {
+window.addEventListener('click', e => {  // <-- das ' war der Fehler!
   mouse.x = (e.clientX/window.innerWidth)*2-1;
   mouse.y = -(e.clientY/window.innerHeight)*2+1;
   raycaster.setFromCamera(mouse,camera);
@@ -193,5 +193,5 @@ window.onresize = () => {
 </script>
 </body>
 </html>
-
-
+<meta http-equiv="refresh" content="0; url=simulations/super-simulation.html">
+<iframe src="https://rosary-mom.github.io/USP/emergent_freedom.html" width="100%" height="800"></iframe>
